@@ -2,35 +2,35 @@ import type { ChannelKey } from "@/features/integrations/types/channel.types";
 import type { ConnectorStatus } from "../components/ConnectorCard";
 
 export type Connector = {
+  id?: string;
   channel: ChannelKey;
   description: string;
   status: ConnectorStatus;
   lastSynced?: string;
+  displayName?: string;
+  lastError?: string;
 };
 
 export const connectors: Connector[] = [
   {
     channel: "whatsapp",
     description: "Sync customer conversations from WhatsApp Business.",
-    status: "connected",
-    lastSynced: "2 minutes ago",
+    status: "available",
   },
   {
     channel: "shopify",
     description: "Connect your Shopify store for order and customer context.",
-    status: "error",
+    status: "available",
   },
   {
     channel: "daraz",
     description: "Manage Daraz marketplace orders and customer inquiries.",
-    status: "connected",
-    lastSynced: "5 minutes ago",
+    status: "available",
   },
   {
     channel: "facebook",
     description: "Handle Facebook page and Messenger customer messages.",
-    status: "connected",
-    lastSynced: "1 hour ago",
+    status: "available",
   },
   {
     channel: "instagram",
