@@ -6,23 +6,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ConversationListItem } from "./ConversationListItem";
-import type { ChatConversation, ConversationStatus } from "../types/chat.types";
+import type { ConversationStatus, ConversationSummary } from "../types/conversation.types";
+
+type FilterValue = "all" | ConversationStatus;
+
+const filters: Array<{ label: string; value: FilterValue }> = [
+  { label: "All", value: "all" },
+  { label: "Open", value: "open" },
+  { label: "Manual", value: "manual" },
+  { label: "Escalated", value: "escalated" },
+  { label: "Resolved", value: "resolved" },
+];
 
 type ConversationListProps = {
-  conversations: ChatConversation[];
+  conversations: ConversationSummary[];
   selectedConversationId: string;
-  onSelectConversation: (conversation: ChatConversation) => void;
+  onSelectConversation: (conversation: ConversationSummary) => void;
 };
-
-const filters: Array<{
-  label: string;
-  value: ConversationStatus | "all" | "ai" | "human";
-}> = [
-  { label: "All", value: "all" },
-  { label: "AI", value: "ai" },
-  { label: "Human", value: "human" },
-  { label: "Escalated", value: "escalated" },
-];
 
 export function ConversationList({
   conversations,
@@ -30,23 +30,18 @@ export function ConversationList({
   onSelectConversation,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] =
-    useState<(typeof filters)[number]["value"]>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterValue>("all");
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conversation) => {
-      const matchesSearch =
-        conversation.customerName
-          .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        conversation.preview.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = conversation.customer.displayName
+        .toLowerCase()
+        .includes(search.toLowerCase());
 
-      const matchesFilter =
-        activeFilter === "all" ||
-        conversation.status === activeFilter ||
-        conversation.mode === activeFilter;
+      if (!matchesSearch) return false;
 
-      return matchesSearch && matchesFilter;
+      if (activeFilter === "all") return true;
+      return conversation.status === activeFilter;
     });
   }, [activeFilter, conversations, search]);
 
@@ -67,10 +62,7 @@ export function ConversationList({
               size="sm"
               variant={activeFilter === filter.value ? "default" : "secondary"}
               onClick={() => setActiveFilter(filter.value)}
-              className={cn(
-                "h-8 rounded-lg",
-                activeFilter !== filter.value && "bg-muted",
-              )}
+              className={cn("h-8 rounded-lg", activeFilter !== filter.value && "bg-muted")}
             >
               {filter.label}
             </Button>
