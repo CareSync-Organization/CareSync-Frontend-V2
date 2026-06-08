@@ -1,11 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
+import type { ReactNode } from "react";
 import { Download, Package, Upload } from "lucide-react";
 
 import { ActionButton } from "@/components/shared/ActionButton";
+import { useActiveStoreStore } from "@/lib/stores/active-store-store";
 
-import { demoItems } from "../mocks/inventory.mock";
-import type { InventoryItem, InventoryItemFormValues } from "../types/inventory.types";
-import { createManualItem, getMetricCounts } from "../utils/inventory.utils";
+import {
+  useCreateInventoryItem,
+  useDeleteInventoryItem,
+  useInventoryItems,
+  useInventorySummary,
+  useUpdateInventoryItem,
+} from "../api/inventory.queries";
+import type {
+  InventoryItem,
+  InventoryItemFormValues,
+} from "../types/inventory.types";
+import { getMetricCounts } from "../utils/inventory.utils";
+import { InventoryDeleteDialog } from "./InventoryDeleteDialog";
 import { InventoryItemDialog } from "./InventoryItemDialog";
 import { InventorySummaryCards } from "./InventorySummaryCards";
 import { InventoryTable } from "./InventoryTable";
@@ -16,10 +28,22 @@ type DialogState = {
 } | null;
 
 export function InventoryPage() {
-  const [items, setItems] = useState(demoItems);
-  const [dialogState, setDialogState] = useState<DialogState>(null);
+  const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
+  const {
+    data: items = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useInventoryItems(activeStoreId);
+  const { data: summary } = useInventorySummary(activeStoreId);
 
-  const counts = useMemo(() => getMetricCounts(items), [items]);
+  const createInventoryItemMutation = useCreateInventoryItem(activeStoreId);
+  const updateInventoryItemMutation = useUpdateInventoryItem(activeStoreId);
+  const deleteInventoryItemMutation = useDeleteInventoryItem(activeStoreId);
+  const [dialogState, setDialogState] = useState<DialogState>(null);
+  const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
+
+  const counts = summary ?? getMetricCounts(items);
 
   const handleAddItem = useCallback(
     () => setDialogState({ mode: "create", item: null }),
@@ -30,10 +54,13 @@ export function InventoryPage() {
     [],
   );
   const handleDeleteItem = useCallback(
-    (itemId: string) =>
-      setItems((current) => current.filter((i) => i.id !== itemId)),
+    (item: InventoryItem) => setDeleteItem(item),
     [],
   );
+
+  const isSaving =
+    createInventoryItemMutation.isPending ||
+    updateInventoryItemMutation.isPending;
 
   return (
     <section className="space-y-6">
@@ -50,6 +77,7 @@ export function InventoryPage() {
             type="button"
             variant="outline"
             startIcon={<Download className="size-4" />}
+            disabled
           >
             Export
           </ActionButton>
@@ -57,6 +85,7 @@ export function InventoryPage() {
             type="button"
             variant="outline"
             startIcon={<Upload className="size-4" />}
+            disabled
           >
             Import CSV
           </ActionButton>
@@ -76,14 +105,42 @@ export function InventoryPage() {
         </div>
       </div>
 
-      <InventorySummaryCards counts={counts} />
+      {!activeStoreId ? (
+        <InventoryStatePanel
+          title="No active store selected"
+          description="Create or select a store from the top navigation before managing inventory."
+        />
+      ) : isLoading ? (
+        <InventoryStatePanel
+          title="Loading inventory"
+          description="Fetching manual inventory for the active store."
+        />
+      ) : isError ? (
+        <InventoryStatePanel
+          title="Could not load inventory"
+          description="Something went wrong while fetching inventory."
+          action={
+            <ActionButton
+              type="button"
+              variant="outline"
+              onClick={() => refetch()}
+            >
+              Retry
+            </ActionButton>
+          }
+        />
+      ) : (
+        <>
+          <InventorySummaryCards counts={counts} />
 
-      <InventoryTable
-        items={items}
-        onAddItem={handleAddItem}
-        onEditItem={handleEditItem}
-        onDeleteItem={handleDeleteItem}
-      />
+          <InventoryTable
+            items={items}
+            onAddItem={handleAddItem}
+            onEditItem={handleEditItem}
+            onDeleteItem={handleDeleteItem}
+          />
+        </>
+      )}
 
       <InventoryItemDialog
         key={dialogState?.item?.id ?? dialogState?.mode ?? "closed"}
@@ -93,21 +150,63 @@ export function InventoryPage() {
         onOpenChange={(open) => {
           if (!open) setDialogState(null);
         }}
+        isSaving={isSaving}
         onSave={(values: InventoryItemFormValues) => {
+          if (!activeStoreId) return;
+
           if (dialogState?.mode === "edit" && dialogState.item) {
-            setItems((current) =>
-              current.map((item) =>
-                item.id === dialogState.item?.id
-                  ? { ...item, ...values, lastUpdated: new Date().toISOString() }
-                  : item,
-              ),
-            );
+            updateInventoryItemMutation.mutate({
+              itemId: dialogState.item.id,
+              ...values,
+            });
           } else {
-            setItems((current) => [createManualItem(values), ...current]);
+            createInventoryItemMutation.mutate({
+              storeId: activeStoreId,
+              ...values,
+            });
           }
+
           setDialogState(null);
         }}
       />
+
+      <InventoryDeleteDialog
+        open={deleteItem !== null}
+        item={deleteItem}
+        isDeleting={deleteInventoryItemMutation.isPending}
+        onOpenChange={(open) => {
+          if (!open) setDeleteItem(null);
+        }}
+        onConfirm={() => {
+          if (!deleteItem) return;
+
+          deleteInventoryItemMutation.mutate(deleteItem.id);
+          setDeleteItem(null);
+        }}
+      />
     </section>
+  );
+}
+
+type InventoryStatePanelProps = {
+  title: string;
+  description: string;
+  action?: ReactNode;
+};
+
+function InventoryStatePanel({
+  title,
+  description,
+  action,
+}: InventoryStatePanelProps) {
+  return (
+    <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border bg-card p-8 text-center">
+      <Package className="size-10 text-muted-foreground" />
+      <div>
+        <h2 className="text-base font-semibold">{title}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      </div>
+      {action}
+    </div>
   );
 }

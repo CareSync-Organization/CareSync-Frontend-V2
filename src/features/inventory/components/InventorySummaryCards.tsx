@@ -1,18 +1,14 @@
 import { cn } from "@/lib/utils";
+import type { InventorySummary } from "../types/inventory.types";
 
 type InventorySummaryCardsProps = {
-  counts: {
-    total: number;
-    inStock: number;
-    lowStock: number;
-    outOfStock: number;
-  };
+  counts: InventorySummary;
 };
 
 export function InventorySummaryCards({ counts }: InventorySummaryCardsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <InventoryMetric label="Total Items" value={counts.total} />
+      <InventoryMetric label="Total Items" value={counts.totalItems} />
       <InventoryMetric
         label="In Stock"
         value={counts.inStock}
@@ -43,10 +39,7 @@ function InventoryMetric({ label, value, className }: InventoryMetricProps) {
     <div className="rounded-xl border bg-card p-5 shadow-sm">
       <p className="text-muted-foreground">{label}</p>
       <p
-        className={cn(
-          "mt-2 text-2xl font-semibold text-foreground",
-          className,
-        )}
+        className={cn("mt-2 text-2xl font-semibold text-foreground", className)}
       >
         {value}
       </p>
