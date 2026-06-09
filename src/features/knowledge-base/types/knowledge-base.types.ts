@@ -17,10 +17,18 @@ export type KnowledgeDocumentFormValues = {
 };
 
 
+export type KnowledgeDocumentProcessingStatus =
+  | "uploaded"
+  | "queued"
+  | "processing"
+  | "processed"
+  | "failed";
+
+
 export type KnowledgeDocInput = {
   storeId: string;
   title: string;
-  documentType: string;
+  document_type: string;
   file: File;
 };
 
@@ -32,7 +40,7 @@ export type  KnowledgeDocDTO = {
   file_extension: string;
   file_size: number;
   file_url: string;
-  processing_status: "uploaded" | "queued" | "processing" | "processed" | "failed";
+  processing_status: KnowledgeDocumentProcessingStatus;
   created_at: string;
   updated_at: string
 }
