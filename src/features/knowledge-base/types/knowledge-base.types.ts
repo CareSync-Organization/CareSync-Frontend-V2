@@ -7,6 +7,7 @@ export type KnowledgeDocument = {
   fileSizeKb: number;
   uploadedAt: string;
   fileUrl: string;
+  isOptimistic?: boolean;
 };
 
 export type KnowledgeDocumentFormValues = {
