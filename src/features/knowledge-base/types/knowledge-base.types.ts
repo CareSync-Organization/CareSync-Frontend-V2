@@ -15,3 +15,24 @@ export type KnowledgeDocumentFormValues = {
   title: string;
   file: File | null;
 };
+
+
+export type KnowledgeDocInput = {
+  storeId: string;
+  title: string;
+  documentType: string;
+  file: File;
+};
+
+export type  KnowledgeDocDTO = {
+  id: string;
+  store: string;
+  title: string;
+  document_type: string;
+  file_extension: string;
+  file_size: number;
+  file_url: string;
+  processing_status: "uploaded" | "queued" | "processing" | "processed" | "failed";
+  created_at: string;
+  updated_at: string
+}
