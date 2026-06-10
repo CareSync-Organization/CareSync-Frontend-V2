@@ -11,7 +11,7 @@ import { ActionButton } from "@/components/shared/ActionButton";
 
 type DeleteKnowledgeDocDialogProps = {
     document: KnowledgeDocument | null;
-    isDeleting: boolean;
+    isDeleting?: boolean;
     onOpenChange: (open: boolean) => void;
     onConfirm: () => void;
 };

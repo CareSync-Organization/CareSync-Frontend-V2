@@ -19,6 +19,7 @@ import {
 } from "../api/knowledge-base.queries";
 import { toast } from "sonner";
 import { DeleteKnowledgeDocDialog } from "./KnowledgeBaseDeleteDialog";
+import { useActiveStoreStore } from "@/lib/stores/active-store-store";
 
 type DialogState = {
   mode: "create" | "edit";
@@ -26,7 +27,7 @@ type DialogState = {
 } | null;
 
 export function KnowledgeBasePage() {
-  const activeStoreId = import.meta.env.VITE_DEV_STORE_ID as string | undefined;
+  const activeStoreId = useActiveStoreStore((state) => state.activeStoreId) ?? undefined;
   const documentsQuery = useKnowledgeDocs(activeStoreId);
   const createKnowledgeDocMutation = useCreateKnowledgeDoc(activeStoreId);
   const updateKnowledgeDocMutation = useUpdateKnowledgeDoc(activeStoreId);
@@ -59,44 +60,33 @@ export function KnowledgeBasePage() {
       return;
     }
     if (dialogState?.mode === "edit" && dialogState.document) {
-      updateKnowledgeDocMutation.mutate(
-        {
-          documentId: dialogState.document.id,
-          title: values.title,
-          documentType: values.documentType,
-          file: values.file,
-        },
-        {
-          onSuccess: () => setDialogState(null),
-        },
-      );
+      const documentId = dialogState.document.id;
+      setDialogState(null);
+      updateKnowledgeDocMutation.mutate({
+        documentId,
+        title: values.title,
+        documentType: values.documentType,
+        file: values.file,
+      });
       return;
     }
     if (!values.file) {
       return;
     }
-    createKnowledgeDocMutation.mutate(
-      {
-        storeId: activeStoreId,
-        title: values.title,
-        documentType: values.documentType,
-        file: values.file,
-      },
-      {
-        onSuccess: () => {
-          setDialogState(null);
-        },
-      },
-    );
+    setDialogState(null);
+    createKnowledgeDocMutation.mutate({
+      storeId: activeStoreId,
+      title: values.title,
+      documentType: values.documentType,
+      file: values.file,
+    });
   }
+
   function handleConfirmDelete() {
     if (!deleteDialogDocument) return;
-
-    deleteKnowledgeDocMutation.mutate(deleteDialogDocument.id, {
-      onSuccess: () => {
-        setDeleteDialogDocument(null);
-      },
-    });
+    const documentId = deleteDialogDocument.id;
+    setDeleteDialogDocument(null);
+    deleteKnowledgeDocMutation.mutate(documentId);
   }
 
   return (
@@ -200,10 +190,6 @@ export function KnowledgeBasePage() {
         open={dialogState !== null}
         mode={dialogState?.mode ?? "create"}
         document={dialogState?.document ?? null}
-        isSaving={
-          createKnowledgeDocMutation.isPending ||
-          updateKnowledgeDocMutation.isPending
-        }
         onOpenChange={(open) => {
           if (!open) setDialogState(null);
         }}
@@ -211,7 +197,6 @@ export function KnowledgeBasePage() {
       />
       <DeleteKnowledgeDocDialog
         document={deleteDialogDocument}
-        isDeleting={deleteKnowledgeDocMutation.isPending}
         onOpenChange={(open) => {
           if (!open) setDeleteDialogDocument(null);
         }}
