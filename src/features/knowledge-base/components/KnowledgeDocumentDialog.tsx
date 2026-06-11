@@ -14,30 +14,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { getFieldError } from "@/lib/get-field-error";
 
-import {
-  knowledgeDocumentSchema,
-  knowledgeDocumentTypes,
-} from "../schemas/knowledge-document.schema";
+import { knowledgeDocumentSchema } from "../schemas/knowledge-document.schema";
 import type {
   KnowledgeDocument,
   KnowledgeDocumentFormValues,
-  KnowledgeDocumentType,
 } from "../types/knowledge-base.types";
-import { documentTypeLabel } from "../utils/knowledge-base.utils";
-
 export type KnowledgeDocumentDialogProps = {
   open: boolean;
   mode: "create" | "edit";
   document: KnowledgeDocument | null;
+  isSaving?: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (values: KnowledgeDocumentFormValues) => void;
 };
@@ -46,6 +34,7 @@ export function KnowledgeDocumentDialog({
   open,
   mode,
   document,
+  isSaving,
   onOpenChange,
   onSave,
 }: KnowledgeDocumentDialogProps) {
@@ -96,26 +85,15 @@ export function KnowledgeDocumentDialog({
               }}
             >
               {(field) => (
-                <div className="grid gap-2">
-                  <Label htmlFor={field.name}>Document Type</Label>
-                  <Select
-                    value={field.state.value}
-                    onValueChange={(value) =>
-                      field.handleChange(value as KnowledgeDocumentType)
-                    }
-                  >
-                    <SelectTrigger id={field.name} className="h-11 w-full">
-                      <SelectValue placeholder="Select document type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {knowledgeDocumentTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {documentTypeLabel[type]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <TextInput
+                  name={field.name}
+                  label="Document Type"
+                  placeholder="Policy, FAQ, product guide..."
+                  value={field.state.value}
+                  error={getFieldError(field.state.meta.errors)}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                />
               )}
             </form.Field>
 
@@ -183,7 +161,12 @@ export function KnowledgeDocumentDialog({
                 Cancel
               </ActionButton>
             </DialogClose>
-            <ActionButton type="submit" fullWidth className="sm:w-auto">
+            <ActionButton 
+            type="submit" 
+            fullWidth 
+            className="sm:w-auto"
+            isLoading={isSaving}
+            loadingText={mode === "edit" ? "Updating..." : "Uploading..."}>
               {mode === "edit" ? "Update Document" : "Upload Document"}
             </ActionButton>
           </DialogFooter>
