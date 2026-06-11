@@ -1,3 +1,4 @@
+import { TextareaField } from "@/components/shared/forms/TextareaField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -6,7 +7,7 @@ function Toggle({
   onCheckedChange,
 }: {
   checked: boolean;
-  onCheckedChange: (v: boolean) => void;
+  onCheckedChange: (value: boolean) => void;
 }) {
   return (
     <button
@@ -30,27 +31,32 @@ function Toggle({
 }
 
 type AIAutomationCardProps = {
-  aiEnabled: boolean;
-  onAiEnabledChange: (v: boolean) => void;
-  threshold: number;
-  onThresholdChange: (v: number) => void;
-  autoEscalate: boolean;
-  onAutoEscalateChange: (v: boolean) => void;
+  autoReplyEnabled: boolean;
+  onAutoReplyEnabledChange: (value: boolean) => void;
+  confidenceThreshold: number;
+  onConfidenceThresholdChange: (value: number) => void;
+  autoEscalateEnabled: boolean;
+  onAutoEscalateEnabledChange: (value: boolean) => void;
+  aiTone: string;
+  onAiToneChange: (value: string) => void;
 };
 
 export function AIAutomationCard({
-  aiEnabled,
-  onAiEnabledChange,
-  threshold,
-  onThresholdChange,
-  autoEscalate,
-  onAutoEscalateChange,
+  autoReplyEnabled,
+  onAutoReplyEnabledChange,
+  confidenceThreshold,
+  onConfidenceThresholdChange,
+  autoEscalateEnabled,
+  onAutoEscalateEnabledChange,
+  aiTone,
+  onAiToneChange,
 }: AIAutomationCardProps) {
   return (
     <Card className="rounded-xl border bg-card shadow-sm">
       <CardHeader>
         <CardTitle>AI Automation</CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -58,10 +64,13 @@ export function AIAutomationCard({
               Enable AI Responses
             </p>
             <p className="text-xs text-muted-foreground">
-              Allow AI to automatically respond to customer inquiries
+              Allow AI to automatically respond to customer inquiries.
             </p>
           </div>
-          <Toggle checked={aiEnabled} onCheckedChange={onAiEnabledChange} />
+          <Toggle
+            checked={autoReplyEnabled}
+            onCheckedChange={onAutoReplyEnabledChange}
+          />
         </div>
 
         <div className="space-y-3">
@@ -70,20 +79,23 @@ export function AIAutomationCard({
               Confidence Threshold
             </p>
             <span className="text-sm font-semibold text-primary">
-              {threshold}%
+              {confidenceThreshold}%
             </span>
           </div>
+
           <input
             type="range"
             min={0}
             max={100}
-            value={threshold}
-            onChange={(e) => onThresholdChange(Number(e.target.value))}
+            value={confidenceThreshold}
+            onChange={(event) =>
+              onConfidenceThresholdChange(Number(event.target.value))
+            }
             className="w-full accent-primary"
           />
+
           <p className="text-xs text-muted-foreground">
-            Minimum confidence level required for AI to respond automatically.
-            Lower values mean more automation but less accuracy.
+            Minimum confidence required before AI responds automatically.
           </p>
         </div>
 
@@ -93,14 +105,22 @@ export function AIAutomationCard({
               Auto-Escalate Complex Queries
             </p>
             <p className="text-xs text-muted-foreground">
-              Automatically escalate conversations when AI confidence is low
+              Escalate conversations when AI confidence is low.
             </p>
           </div>
           <Toggle
-            checked={autoEscalate}
-            onCheckedChange={onAutoEscalateChange}
+            checked={autoEscalateEnabled}
+            onCheckedChange={onAutoEscalateEnabledChange}
           />
         </div>
+
+        <TextareaField
+          label="AI Tone"
+          value={aiTone}
+          onChange={(event) => onAiToneChange(event.target.value)}
+          className="min-h-28"
+          placeholder="Concise, friendly customer-care tone."
+        />
       </CardContent>
     </Card>
   );
