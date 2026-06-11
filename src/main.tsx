@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import "./index.css";
 import { router } from "./router";
 import * as Sentry from "@sentry/react";
@@ -44,6 +45,7 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
     <QueryClientProvider client={queryClient}>
     <RouterProvider router={router} />
+    <TanStackRouterDevtools position="top-left" router={router} initialIsOpen={false}/>
     <Toaster richColors position="top-center"/>
     <ReactQueryDevtools />
     </QueryClientProvider>
