@@ -12,20 +12,13 @@ import { formatDocumentType } from "../utils/knowledge-base.utils";
 import { KnowledgeBaseTile } from "./KnowledgeBaseTile";
 import { KnowledgeDocumentDialog } from "./KnowledgeDocumentDialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   useCreateKnowledgeDoc,
   useDeleteKnowledgeDoc,
   useKnowledgeDocs,
   useUpdateKnowledgeDoc,
 } from "../api/knowledge-base.queries";
 import { toast } from "sonner";
+import { DeleteKnowledgeDocDialog } from "./KnowledgeBaseDeleteDialog";
 
 type DialogState = {
   mode: "create" | "edit";
@@ -216,44 +209,14 @@ export function KnowledgeBasePage() {
         }}
         onSave={handleSave}
       />
-      <Dialog
-        open={deleteDialogDocument !== null}
+      <DeleteKnowledgeDocDialog
+        document={deleteDialogDocument}
+        isDeleting={deleteKnowledgeDocMutation.isPending}
         onOpenChange={(open) => {
           if (!open) setDeleteDialogDocument(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete document?</DialogTitle>
-            <DialogDescription>
-              This will permanently remove{" "}
-              <span className="font-medium text-foreground">
-                {deleteDialogDocument?.title}
-              </span>{" "}
-              from the knowledge base.
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <ActionButton
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteDialogDocument(null)}
-            >
-              Cancel
-            </ActionButton>
-            <ActionButton
-              type="button"
-              variant="destructive"
-              isLoading={deleteKnowledgeDocMutation.isPending}
-              loadingText="Deleting..."
-              onClick={handleConfirmDelete}
-            >
-              Delete
-            </ActionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onConfirm={handleConfirmDelete}
+      />
     </section>
   );
 }

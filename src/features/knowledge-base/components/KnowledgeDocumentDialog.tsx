@@ -105,7 +105,7 @@ export function KnowledgeDocumentDialog({
                 <TextInput
                   name={field.name}
                   label="Document Title"
-                  placeholder="Enter a descriptive title"
+                  placeholder="Leave blank to use the file name"
                   value={field.state.value}
                   error={getFieldError(field.state.meta.errors)}
                   onBlur={field.handleBlur}
