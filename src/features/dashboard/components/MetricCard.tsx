@@ -96,13 +96,13 @@ export function MetricCard({
         </div>
 
         <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="text-sm text-black dark:text-muted-foreground">{label}</p>
 
           <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-3xl font-semibold tracking-tight">{value}</p>
+            <p className="text-3xl font-semibold tracking-tight text-black dark:text-muted-foreground">{value}</p>
 
             {helperText ? (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-black dark:text-muted-foreground">
                 {helperText}
               </span>
             ) : null}
