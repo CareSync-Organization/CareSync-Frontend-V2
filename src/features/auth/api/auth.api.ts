@@ -25,10 +25,11 @@ export async function getMe() {
     return api<UserDto>("/api/auth/me/");
 }
 
-export async function refreshSession() {
-    return api<UserDto>("/api/auth/refresh/", {
-        method: "POST",
-    })
+export async function updateMe(input: { name?: string; email?: string; profile_pic?: string }) {
+    return api<UserDto>("/api/auth/me/", {
+        method: "PATCH",
+        body: JSON.stringify(input)
+    });
 }
 
 export async function logout() {
