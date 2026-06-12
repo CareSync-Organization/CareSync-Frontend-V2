@@ -35,7 +35,7 @@ export function LoginForm() {
         form.handleSubmit();
       }}
     >
-      {signinMutation.isError && (
+      {signinMutation.isError ? (
         <Alert variant="destructive">
           <AlertDescription>
             {signinMutation.error instanceof Error
@@ -43,7 +43,7 @@ export function LoginForm() {
               : "Invalid credentials. Please try again."}
           </AlertDescription>
         </Alert>
-      )}
+      ) : null}
       <form.Field
         name="email"
         validators={{
@@ -60,7 +60,7 @@ export function LoginForm() {
             error={getFieldError(field.state.meta.errors)}
             startIcon={<HugeiconsIcon icon={MailEdit01Icon} size={16} />}
             onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
+            onChange={(event) => {signinMutation.reset(); field.handleChange(event.target.value)}}
           />
         )}
       </form.Field>
@@ -82,6 +82,7 @@ export function LoginForm() {
             startIcon={<HugeiconsIcon icon={LockPasswordIcon} />}
             onBlur={field.handleBlur}
             onChange={(event) => {
+              signinMutation.reset();
               field.handleChange(event.target.value);
             }}
           />

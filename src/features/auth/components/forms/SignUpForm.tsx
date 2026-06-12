@@ -21,6 +21,7 @@ import { CheckboxField } from "@/components/shared/forms/CheckboxField";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useSignup } from "../../api/auth.queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getApiFieldError } from "@/lib/api"
 
 export function SignUpForm() {
   const navigate = useNavigate()
@@ -43,6 +44,16 @@ export function SignUpForm() {
       navigate({to: "/dashboard"})
     },
   });
+
+  const nameServerError = getApiFieldError(signupMutation.error, "name");
+  const emailServerError = getApiFieldError(signupMutation.error, "email");
+  const passwordServerError = getApiFieldError(signupMutation.error, "password");
+  const confirmPasswordServerError = getApiFieldError(
+    signupMutation.error,
+    "password_confirm",
+  );
+
+
   return (
     <form
       className="grid gap-4 w-full max-w-sm"
@@ -72,9 +83,9 @@ export function SignUpForm() {
             placeholder="Enter your fullname"
             startIcon={<HugeiconsIcon icon={UserIcon} size={16} />}
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? nameServerError}
             onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
+            onChange={(event) => {signupMutation.reset(); field.handleChange(event.target.value)}}
           />
         )}
       </form.Field>
@@ -89,9 +100,9 @@ export function SignUpForm() {
             placeholder="you@example.com"
             startIcon={<HugeiconsIcon icon={MailEdit01Icon} size={16} />}
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? emailServerError}
             onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
+            onChange={(event) => {signupMutation.reset(); field.handleChange(event.target.value)}}
           />
         )}
       </form.Field>
@@ -109,10 +120,11 @@ export function SignUpForm() {
             type="password"
             placeholder="Enter your password"
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? passwordServerError}
             startIcon={<HugeiconsIcon icon={LockPasswordIcon} />}
             onBlur={field.handleBlur}
             onChange={(event) => {
+              signupMutation.reset();
               field.handleChange(event.target.value);
             }}
           />
@@ -137,10 +149,11 @@ export function SignUpForm() {
             type="password"
             placeholder="Enter your password again"
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? confirmPasswordServerError}
             startIcon={<HugeiconsIcon icon={LockPasswordIcon} />}
             onBlur={field.handleBlur}
             onChange={(event) => {
+              signupMutation.reset();
               field.handleChange(event.target.value);
             }}
           />
@@ -162,7 +175,7 @@ export function SignUpForm() {
             onBlur={field.handleBlur}
             error={getFieldError(field.state.meta.errors)}
             label={
-              <>
+              <div>
                 I agree to the{" "}
                 <a href="/terms" className="text-primary hover:underline">
                   Terms of Service
@@ -171,7 +184,7 @@ export function SignUpForm() {
                 <a href="/privacy" className="text-primary hover:underline">
                   Privacy Policy
                 </a>
-              </>
+              </div>
             }
           />
         )}
@@ -195,7 +208,7 @@ export function SignUpForm() {
         Continue with Microsoft 365
       </ActionButton>
       <p className="text-center">
-        Don't have an account?{" "}
+        Already have an Account?{" "}
         <Link to="/login" className="font-semibold">
           Sign In
         </Link>
