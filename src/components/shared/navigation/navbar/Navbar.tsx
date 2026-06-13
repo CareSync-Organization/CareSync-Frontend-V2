@@ -1,6 +1,6 @@
 import { ThemeModeToggle } from "@/components/shared/ThemeModeToggle"
 import { ProfileSnapshot } from "./ProfileSnapshot"
-import { StoreSwitcher } from "./StoreSwitcher"
+import { StoreSwitcher } from "../../../../features/stores/components/StoreSwitcher"
 import { NotificationPopover } from "./NotificationsPopover"
 import { MobileDrawer } from "@/components/shared/navigation/mobile-drawer/drawer"
 import { CareSyncLogoBadge } from "../../brand/animated-caresync-logo-icon"

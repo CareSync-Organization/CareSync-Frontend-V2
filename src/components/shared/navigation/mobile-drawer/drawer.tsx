@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeModeToggle } from "@/components/shared/ThemeModeToggle";
 import { CareSyncLogoBadge } from "@/components/shared/brand/animated-caresync-logo-icon";
 import { NotificationPopover } from "@/components/shared/navigation/navbar/NotificationsPopover";
-import { StoreSwitcher } from "@/components/shared/navigation/navbar/StoreSwitcher";
+import { StoreSwitcher } from "@/features/stores/components/StoreSwitcher";
 import {
   mainNavItems,
   secondaryNavItems,

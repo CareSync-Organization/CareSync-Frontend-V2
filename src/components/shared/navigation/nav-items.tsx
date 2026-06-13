@@ -23,7 +23,7 @@ export const mainNavItems = [
     icon: <HugeiconsIcon icon={Chat01Icon} size={18} />,
   },
   {
-    label: "Stores and Connectors",
+    label: "Connectors",
     to: "/connectors",
     icon: <HugeiconsIcon icon={Link05Icon} size={18} />,
   },
