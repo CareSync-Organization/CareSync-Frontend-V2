@@ -1,22 +1,24 @@
 import { useMemo, useState } from "react";
-import { Edit2, FileText, Info, Plus, Trash2 } from "lucide-react";
+import { FileText, Info, Plus } from "lucide-react";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { Badge } from "@/components/ui/badge";
-
-import { demoDocuments } from "../mocks/knowledge-base.mock";
 import type {
   KnowledgeDocument,
   KnowledgeDocumentFormValues,
 } from "../types/knowledge-base.types";
-import {
-  createDocumentFromValues,
-  documentTypeLabel,
-  formatDate,
-  getFileType,
-} from "../utils/knowledge-base.utils";
+import { formatDocumentType } from "../utils/knowledge-base.utils";
+import { KnowledgeBaseTile } from "./KnowledgeBaseTile";
 import { KnowledgeDocumentDialog } from "./KnowledgeDocumentDialog";
+import {
+  useCreateKnowledgeDoc,
+  useDeleteKnowledgeDoc,
+  useKnowledgeDocs,
+  useUpdateKnowledgeDoc,
+} from "../api/knowledge-base.queries";
+import { toast } from "sonner";
+import { DeleteKnowledgeDocDialog } from "./KnowledgeBaseDeleteDialog";
 
 type DialogState = {
   mode: "create" | "edit";
@@ -24,9 +26,16 @@ type DialogState = {
 } | null;
 
 export function KnowledgeBasePage() {
-  const [documents, setDocuments] = useState(demoDocuments);
+  const activeStoreId = import.meta.env.VITE_DEV_STORE_ID as string | undefined;
+  const documentsQuery = useKnowledgeDocs(activeStoreId);
+  const createKnowledgeDocMutation = useCreateKnowledgeDoc(activeStoreId);
+  const updateKnowledgeDocMutation = useUpdateKnowledgeDoc(activeStoreId);
+  const deleteKnowledgeDocMutation = useDeleteKnowledgeDoc(activeStoreId);
+  const documents = documentsQuery.data ?? [];
   const [search, setSearch] = useState("");
   const [dialogState, setDialogState] = useState<DialogState>(null);
+  const [deleteDialogDocument, setDeleteDialogDocument] =
+    useState<KnowledgeDocument | null>(null);
 
   const filteredDocuments = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -36,7 +45,7 @@ export function KnowledgeBasePage() {
         document.title,
         document.fileName,
         document.fileType,
-        documentTypeLabel[document.documentType],
+        formatDocumentType(document.documentType),
       ]
         .join(" ")
         .toLowerCase()
@@ -45,32 +54,49 @@ export function KnowledgeBasePage() {
   }, [documents, search]);
 
   function handleSave(values: KnowledgeDocumentFormValues) {
-    if (dialogState?.mode === "edit" && dialogState.document) {
-      setDocuments((current) =>
-        current.map((document) => {
-          if (document.id !== dialogState.document?.id) return document;
-          return {
-            ...document,
-            title: values.title,
-            documentType: values.documentType,
-            fileName: values.file?.name ?? document.fileName,
-            fileType: values.file
-              ? getFileType(values.file)
-              : document.fileType,
-            fileSizeKb: values.file
-              ? Math.max(1, Math.round(values.file.size / 1024))
-              : document.fileSizeKb,
-            uploadedAt: new Date().toISOString(),
-          };
-        }),
-      );
-    } else {
-      const nextDocument = createDocumentFromValues(values);
-      if (nextDocument) {
-        setDocuments((current) => [nextDocument, ...current]);
-      }
+    if (!activeStoreId) {
+      toast.error("Select or create a store before uploading document");
+      return;
     }
-    setDialogState(null);
+    if (dialogState?.mode === "edit" && dialogState.document) {
+      updateKnowledgeDocMutation.mutate(
+        {
+          documentId: dialogState.document.id,
+          title: values.title,
+          documentType: values.documentType,
+          file: values.file,
+        },
+        {
+          onSuccess: () => setDialogState(null),
+        },
+      );
+      return;
+    }
+    if (!values.file) {
+      return;
+    }
+    createKnowledgeDocMutation.mutate(
+      {
+        storeId: activeStoreId,
+        title: values.title,
+        documentType: values.documentType,
+        file: values.file,
+      },
+      {
+        onSuccess: () => {
+          setDialogState(null);
+        },
+      },
+    );
+  }
+  function handleConfirmDelete() {
+    if (!deleteDialogDocument) return;
+
+    deleteKnowledgeDocMutation.mutate(deleteDialogDocument.id, {
+      onSuccess: () => {
+        setDeleteDialogDocument(null);
+      },
+    });
   }
 
   return (
@@ -132,7 +158,17 @@ export function KnowledgeBasePage() {
       />
 
       <div className="space-y-3">
-        {filteredDocuments.length === 0 ? (
+        {documentsQuery.isLoading ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-muted-foreground">
+            <FileText className="size-8 opacity-40" />
+            <p className="text-sm font-medium">Loading documents...</p>
+          </div>
+        ) : documentsQuery.isError ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 py-16 text-destructive">
+            <FileText className="size-8 opacity-40" />
+            <p className="text-sm font-medium">Could not load documents</p>
+          </div>
+        ) : filteredDocuments.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-muted-foreground">
             <FileText className="size-8 opacity-40" />
             <p className="text-sm font-medium">No documents found</p>
@@ -142,48 +178,19 @@ export function KnowledgeBasePage() {
           </div>
         ) : (
           filteredDocuments.map((document) => (
-            <div
+            <KnowledgeBaseTile
               key={document.id}
-              className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm"
-            >
-              <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
-                <FileText className="size-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate text-sm font-semibold">
-                  {document.title}
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="secondary" className="h-6">
-                    {documentTypeLabel[document.documentType]}
-                  </Badge>
-                  <span>Uploaded: {formatDate(document.uploadedAt)}</span>
-                  <span>{document.fileSizeKb} KB</span>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  className="grid size-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                  aria-label={`Edit ${document.title}`}
-                  onClick={() => setDialogState({ mode: "edit", document })}
-                >
-                  <Edit2 className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  className="grid size-8 place-items-center rounded-lg text-destructive transition hover:bg-destructive/10"
-                  aria-label={`Delete ${document.title}`}
-                  onClick={() =>
-                    setDocuments((current) =>
-                      current.filter((d) => d.id !== document.id),
-                    )
-                  }
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
-            </div>
+              document={document}
+              onEdit={(document) => {
+                setDialogState({ mode: "edit", document });
+              }}
+              onDelete={(document) => {
+                setDeleteDialogDocument(document);
+              }}
+              onPreview={(document) => {
+                window.open(document.fileUrl, "_blank", "noopener,noreferrer");
+              }}
+            />
           ))
         )}
       </div>
@@ -193,10 +200,22 @@ export function KnowledgeBasePage() {
         open={dialogState !== null}
         mode={dialogState?.mode ?? "create"}
         document={dialogState?.document ?? null}
+        isSaving={
+          createKnowledgeDocMutation.isPending ||
+          updateKnowledgeDocMutation.isPending
+        }
         onOpenChange={(open) => {
           if (!open) setDialogState(null);
         }}
         onSave={handleSave}
+      />
+      <DeleteKnowledgeDocDialog
+        document={deleteDialogDocument}
+        isDeleting={deleteKnowledgeDocMutation.isPending}
+        onOpenChange={(open) => {
+          if (!open) setDeleteDialogDocument(null);
+        }}
+        onConfirm={handleConfirmDelete}
       />
     </section>
   );
