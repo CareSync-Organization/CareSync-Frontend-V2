@@ -4,20 +4,21 @@ import { RouterProvider } from "@tanstack/react-router";
 // import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import "./index.css";
 import { router } from "./router";
-import * as Sentry from "@sentry/react";
+// import * as Sentry from "@sentry/react";
 import { QueryClientProvider } from "@tanstack/react-query"
 import { queryClient } from "./lib/query-client"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { ThemeProvider } from './lib/theme-provider';
 import { Toaster } from "sonner"
 
-const sentryEnv = import.meta.env.VITE_SENTRY_ENV;
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-const enableLogs = import.meta.env.VITE_ENABLE_SENTRY_LOGS === "true";
-// const enableReplay = import.meta.env.VITE_ENABLE_SENTRY_REPLAY === "true";
-const sendDefaultPii = import.meta.env.VITE_SENTRY_SEND_DEFAULT_PII === "true";
-const maskAllText = import.meta.env.VITE_SENTRY_MASK_ALL_TEXT === "true";
-const blockAllMedia = import.meta.env.VITE_SENTRY_BLOCK_ALL_MEDIA === "true";
+// const sentryEnv = import.meta.env.VITE_SENTRY_ENV;
+// const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+// const enableLogs = import.meta.env.VITE_ENABLE_SENTRY_LOGS === "true";
+// // const enableReplay = import.meta.env.VITE_ENABLE_SENTRY_REPLAY === "true";
+// const sendDefaultPii = import.meta.env.VITE_SENTRY_SEND_DEFAULT_PII === "true";
+// const maskAllText = import.meta.env.VITE_SENTRY_MASK_ALL_TEXT === "true";
+// const blockAllMedia = import.meta.env.VITE_SENTRY_BLOCK_ALL_MEDIA === "true";
+
 
 // Sentry.init({
 //   dsn: import.meta.env.VITE_SENTRY_DSN,
