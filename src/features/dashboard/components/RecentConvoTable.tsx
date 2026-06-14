@@ -15,6 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { channelConfig } from "@/features/integrations/config/channel-config";
 import { ChatPanel } from "@/features/conversation/components/ChatPanel";
+import type {
+  ConversationChannel,
+  ConversationStatus,
+  ConversationSummary,
+} from "@/features/conversation/types/conversation.types";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +43,49 @@ const statusClassName: Record<TableConversationMode, string> = {
   automated: "bg-emerald-500/10 text-emerald-500",
   manual: "bg-amber-500/10 text-amber-500",
 };
+
+function mapDemoChannelToConversationChannel(
+  channel: ConversationRow["channel"],
+): ConversationChannel {
+  if (channel === "shopify" || channel === "daraz" || channel === "whatsapp") {
+    return channel;
+  }
+
+  return "shopify";
+}
+
+function mapDemoStatusToConversationStatus(
+  status: TableConversationMode,
+): ConversationStatus {
+  return status === "manual" ? "manual" : "open";
+}
+
+function mapDemoRowToConversationSummary(
+  row: ConversationRow,
+): ConversationSummary {
+  return {
+    id: row.id,
+    storeId: "demo-store",
+    customer: {
+      id: row.id,
+      displayName: row.customerName,
+    },
+    connectorId: null,
+    channel: mapDemoChannelToConversationChannel(row.channel),
+    status: mapDemoStatusToConversationStatus(row.status),
+    assignedUserId: null,
+    lastMessageAt: row.updatedAt,
+    latestMessage: {
+      id: `${row.id}-latest`,
+      senderType: "customer",
+      deliveryStatus: "received",
+      createdAt: row.updatedAt,
+      content: row.lastMessage,
+    },
+    createdAt: row.updatedAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 const columns: ColumnDef<ConversationRow>[] = [
   {
@@ -203,19 +251,7 @@ export function RecentConvoTable() {
         <DialogContent className="h-[min(760px,85vh)] max-w-5xl p-0">
           {selectedConversation ? (
             <ChatPanel
-              conversation={{
-                id: selectedConversation.id,
-                customerName: selectedConversation.customerName,
-                channel: selectedConversation.channel,
-                status:
-                  selectedConversation.status === "manual"
-                    ? "assigned"
-                    : "open",
-                mode:
-                  selectedConversation.status === "automated" ? "ai" : "human",
-                preview: selectedConversation.lastMessage,
-                updatedAt: selectedConversation.updatedAt,
-              }}
+              conversation={mapDemoRowToConversationSummary(selectedConversation)}
               className="h-full rounded-none"
             />
           ) : null}
