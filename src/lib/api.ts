@@ -1,133 +1,208 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
+type ApiErrorData = Record<string, unknown> | string | null
+let csrfToken: string | null = null;
+
 export class ApiError extends Error {
   status: number;
-  data?: any;
+  data: ApiErrorData;
 
-  constructor(status: number, message: string, data?: any) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.data = data;
+  constructor(status: number, message: string, data: ApiErrorData = null) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    this.data = data
   }
 }
 
-async function parseApiResponse<T>(response: Response): Promise<T> {
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  // Parse JSON response body if available (both for success and error bodies)
-  let responseData: any = null;
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    try {
-      responseData = await response.json();
-    } catch (e) {
-      console.error("Failed to parse response body as JSON", e);
-    }
-  }
-
-  if (!response.ok) {
-    // Attempt to extract descriptive error message from backend response
-    let errorMessage = `API request failed: ${response.status}`;
-    if (responseData) {
-      if (typeof responseData === "object") {
-        if (responseData.detail) {
-          errorMessage = responseData.detail;
-        } else if (responseData.error) {
-          errorMessage = responseData.error;
-        } else if (responseData.message) {
-          errorMessage = responseData.message;
-        } else if (responseData.non_field_errors) {
-          errorMessage = Array.isArray(responseData.non_field_errors)
-            ? responseData.non_field_errors.join(", ")
-            : responseData.non_field_errors;
-        }
-      } else if (typeof responseData === "string") {
-        errorMessage = responseData;
-      }
-    }
-    throw new ApiError(response.status, errorMessage, responseData);
-  }
-
-  return responseData as T;
+function isUnsafeMethod(method = "GET") {
+  return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
 }
 
 function getCookie(name: string) {
-  const cookie = document.cookie.split("; ").find((row) => row.startsWith(`${name}=`));
-  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
+
+  return value ? decodeURIComponent(value) : null;
 }
 
-function isUnsafeMethod(method?: string) {
-  const normalizeMethod = method?.toUpperCase() ?? "GET";
-  return !["GET", "HEAD", "OPTIONS", "TRACE"].includes(normalizeMethod)
-}
 
-function getCsrfHeaders(init?: RequestInit): HeadersInit {
-  if (!isUnsafeMethod(init?.method)) return {};
-  const csrfToken = getCookie("csrftoken")
-  return csrfToken ? {"X-CSRFTOKEN": csrfToken} : {}
-}
-
-   async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {                                                                                                                  
-      let response = await fetch(url, init);
-      const isAuthOrRefreshRoute =                                                                                                                                                                       
-        url.endsWith("/api/auth/refresh/") ||                                                                                                                                                            
-        url.endsWith("/api/auth/signin/") ||                                                                                                                                                             
-        url.endsWith("/api/auth/signup/") ||                                                                                                                                                             
-        url.endsWith("/api/auth/logout/");
-      // Trigger retry on 401, but not if the request is already an auth action                                                                                                                          
-      if (response.status === 401 && !isAuthOrRefreshRoute) {                                                                                                                                            
-        try {                                                                                                                                                                                            
-          // Dynamic import to prevent circular dependency                                                                                                                                               
-          const { refreshSession } = await import("@/features/auth/api/auth.api");                                                                                                                       
-          await refreshSession();
-          // Retry the original request                                                                                                                                                                  
-          response = await fetch(url, init);                                                                                                                                                             
-        } catch (error) {                                                                                                                                                                                
-          console.error("Silent token refresh failed, logging out:", error);                                                                                                                             
-          const { queryClient } = await import("@/lib/query-client");                                                                                                                                    
-          queryClient.clear();                                                                                                                                                                           
-          // Optionally redirect to login immediately if not already there
-          if (window.location.pathname !== "/login") {
-            window.location.href = "/login";
-          }                                                                                                                                        
-        }                                                                                                                                                                                                
-      }                                                                                                                                                                           
-      return response;                                                                                                                                                                                   
-    } 
-
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetchWithRetry(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...getCsrfHeaders(init),
-      ...(init?.headers ?? {}),
-    },
+async function fetchCsrfToken() {
+  const response = await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
     credentials: "include",
   });
 
-  return parseApiResponse<T>(response);
+  if (!response.ok) {
+    throw new ApiError(response.status, "Could not fetch CSRF token.");
+  }
+
+  const data = (await response.json()) as { csrfToken?: string };
+
+  if (!data.csrfToken) {
+    throw new ApiError(response.status, "CSRF token response was empty.");
+  }
+
+  csrfToken = data.csrfToken;
+  return csrfToken;
 }
 
-export async function apiFormData<T>(
+async function getCsrfToken() {
+  const cookieToken = getCookie("csrftoken");
+  if (cookieToken) {
+    csrfToken = cookieToken;
+    return cookieToken;
+  }
+
+  return csrfToken ?? fetchCsrfToken();
+}
+
+async function buildHeaders(init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  if (!(init?.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json")
+  }
+  if (isUnsafeMethod(init?.method)) {
+    headers.set("X-CSRFToken", await getCsrfToken());
+  }
+  return headers;
+}
+
+async function parseResponseBody(response: Response) {
+  if (response.status === 204) return null;
+  const contentType = response.headers.get("content-type")
+  if (contentType?.includes("application/json")) {
+    return response.json();
+  }
+  return response.text();
+}
+
+function getErrorMessage(data: ApiErrorData, status: number) {
+  if (data) {
+    if (typeof data === "string") return data;
+    if (typeof data === "object") {
+      if (typeof data.detail === "string") return data.detail;
+      if (typeof data.error === "string") return data.error;
+      if (typeof data.message === "string") return data.message;
+      if (Array.isArray(data.non_field_errors)) return data.non_field_errors.join(", ");
+    }
+  }
+  if (status === 0) return "Unable to connect. Please check your internet connection and try again.";
+  if (status === 401) return "Your session has expired. Please sign in again.";
+  if (status === 403) return "You don't have permission to perform this action.";
+  if (status === 404) return "The requested resource was not found.";
+  if (status >= 500) return "Something went wrong on our end. Please try again.";
+  return "Something went wrong. Please try again.";
+}
+
+function isAuthEndpoint(path: string) {
+  return [
+    "/api/auth/signin/",
+    "/api/auth/signup/",
+    "/api/auth/refresh/",
+    "/api/auth/logout/"
+  ].includes(path)
+}
+
+let refreshPromise: Promise<void> | null = null;
+
+async function refreshSession() {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const headers = await buildHeaders({ method: "POST" });
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh/`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const data = await parseResponseBody(response);
+        throw new ApiError(response.status, getErrorMessage(data, response.status), data);
+      }
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
+
+async function safeFetch(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    throw new ApiError(0, getErrorMessage(null, 0));
+  }
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = await buildHeaders(init);
+
+  const requestInit: RequestInit = {
+    ...init,
+    headers,
+    credentials: "include",
+  };
+
+  let response = await safeFetch(`${API_BASE_URL}${path}`, requestInit);
+
+  if (response.status === 401 && !isAuthEndpoint(path)) {
+    await refreshSession();
+    response = await safeFetch(`${API_BASE_URL}${path}`, requestInit);
+  }
+
+  if (response.status === 403 && isUnsafeMethod(init.method)) {
+    csrfToken = null;
+    response = await safeFetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers: await buildHeaders(init),
+      credentials: "include",
+    });
+  }
+
+  const data = await parseResponseBody(response);
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      getErrorMessage(data, response.status),
+      data,
+    );
+  }
+
+  return data as T;
+}
+
+export function api<T>(path: string, init: RequestInit = {}) {
+  return request<T>(path, init);
+}
+
+export function apiFormData<T>(
   path: string,
   formData: FormData,
-  init?: Omit<RequestInit, "body">,
-): Promise<T> {
-  const method = init?.method ?? "POST";
-  const response = await fetchWithRetry(`${API_BASE_URL}${path}`, {
+  init: Omit<RequestInit, "body"> = {},
+) {
+  return request<T>(path, {
     ...init,
-    method,
+    method: init.method ?? "POST",
     body: formData,
-    headers: {
-      ...getCsrfHeaders({...init, method}),
-      ...(init?.headers ?? {}),
-    },
-    credentials: "include",
   });
+}
 
-  return parseApiResponse<T>(response);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export function getApiFieldError(error: unknown, field: string) {
+  if (!(error instanceof ApiError)) return undefined;
+  if (!isRecord(error.data)) return undefined;
+
+  const value = error.data[field];
+
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "string") return value;
+
+  return undefined;
 }
