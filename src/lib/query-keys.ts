@@ -3,6 +3,10 @@ export const queryKeys = {
         all: ["knowledge-base"] as const, // invalidate when logging out
         list: (storeId: string) => [...queryKeys.knowledgeBase.all, "list", {storeId} ] as const,
         detail: (documentId: string) => [...queryKeys.knowledgeBase.all, "detail", documentId] as const
+    },
+    auth: {
+        all: ["auth"] as const,
+        me: () => [...queryKeys.auth.all, "me"] as const
     }
     // auth: ["auth"] as const,
     // currentUser: ["auth", "current-user"] as const,
