@@ -44,10 +44,10 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
     <QueryClientProvider client={queryClient}>
-    <RouterProvider router={router} />
-    <TanStackRouterDevtools position="top-left" router={router} initialIsOpen={false}/>
+    <RouterProvider router={router} /> 
+    {/* <TanStackRouterDevtools position="top-left" router={router} initialIsOpen={false}/> */}
     <Toaster richColors position="top-center"/>
-    <ReactQueryDevtools />
+    {/* <ReactQueryDevtools /> */}
     </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,
