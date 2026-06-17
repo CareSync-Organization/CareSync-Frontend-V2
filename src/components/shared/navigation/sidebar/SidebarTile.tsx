@@ -10,6 +10,8 @@ type SidebarTileProps = {
   styles?: string;
   activePropsStyles?: string;
   inactivePropsStyles?: string;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  isLoading?: boolean;
 };
 
 export function SidebarTile({
@@ -19,7 +21,9 @@ export function SidebarTile({
   collapsed,
   styles,
   activePropsStyles,
-  inactivePropsStyles
+  inactivePropsStyles,
+  onClick,
+  isLoading,
 }: SidebarTileProps) {
   return (
     <motion.div
@@ -31,6 +35,7 @@ export function SidebarTile({
     >
       <Link
         to={tileLink}
+        onClick={onClick}
         className={cn(
           styles,
           "relative flex h-10 items-center rounded-xl text-sm no-underline transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:no-underline",
@@ -48,7 +53,11 @@ export function SidebarTile({
             collapsed ? "left-1/2 -translate-x-1/2" : "left-3 translate-x-0",
           )}
         >
-          {icon}
+          {isLoading ? (
+            <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          ) : (
+            icon
+          )}
         </span>
 
         <span
