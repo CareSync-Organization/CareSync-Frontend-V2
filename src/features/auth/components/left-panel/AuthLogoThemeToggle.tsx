@@ -3,8 +3,7 @@ import { CareSyncLogoBadge } from "@/components/shared/brand/animated-caresync-l
 
 export function AuthLogoThemeToggle() {
   return (
-    <button
-      type="button"
+    <div
       className="group flex w-fit items-center gap-3 rounded-2xl text-left outline-none"
     >
       <span className="relative">
@@ -20,6 +19,6 @@ export function AuthLogoThemeToggle() {
           Centralized Support Platform
         </span>
       </span>
-    </button>
+    </div>
   )
 }

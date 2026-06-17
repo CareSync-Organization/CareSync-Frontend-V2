@@ -4,10 +4,29 @@ import {
   createFileRoute,
   Outlet,
   useRouterState,
+  redirect,
 } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { queryKeys } from "@/lib/query-keys";
+import { getMe } from "@/features/auth/api/auth.api";
+import { mapUserDto } from "@/features/auth/api/auth.mapper";
 
 export const Route = createFileRoute("/_app")({
+  beforeLoad: async ({ context, location }) => {
+    try {
+      await context.queryClient.ensureQueryData({
+        queryKey: queryKeys.auth.me(),
+        queryFn: async () => mapUserDto(await getMe()),
+      });
+    } catch (error) {
+      throw redirect({
+        to: "/login",
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: RouteComponent,
 });
 

@@ -18,9 +18,13 @@ import {
 } from "@/features/auth/schemas/signup.schema";
 import { getFieldError } from "@/lib/get-field-error";
 import { CheckboxField } from "@/components/shared/forms/CheckboxField";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useSignup } from "../../api/auth.queries";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function SignUpForm() {
+  const navigate = useNavigate()
+  const signupMutation = useSignup()
   const form = useForm({
     defaultValues: {
       fullName: "",
@@ -29,8 +33,14 @@ export function SignUpForm() {
       confirmPassword: "",
       acceptedTerms: false as boolean,
     } satisfies SignUpFormValues,
-    onSubmit: ({ value }) => {
-      console.log(value);
+    onSubmit: async ({ value }) => {
+      await signupMutation.mutateAsync({
+        name: value.fullName,
+        email: value.email,
+        password: value.password,
+        passwordConfirm: value.confirmPassword
+      });
+      navigate({to: "/dashboard"})
     },
   });
   return (
@@ -42,6 +52,15 @@ export function SignUpForm() {
         form.handleSubmit();
       }}
     >
+      {signupMutation.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {signupMutation.error instanceof Error
+              ? signupMutation.error.message
+              : "Registration failed. Please check your inputs and try again."}
+          </AlertDescription>
+        </Alert>
+      )}
       <form.Field
         name="fullName"
         validators={{ onChange: signupSchema.shape.fullName }}
@@ -157,7 +176,7 @@ export function SignUpForm() {
           />
         )}
       </form.Field>
-      <ActionButton type="submit">Create Account</ActionButton>
+      <ActionButton type="submit" isLoading={signupMutation.isPending} loadingText="Creating Account...">Create Account</ActionButton>
 
       <AuthDivider children="or sign up with" />
 

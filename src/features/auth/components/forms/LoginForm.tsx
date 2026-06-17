@@ -12,11 +12,19 @@ import {
 import { getFieldError } from "@/lib/get-field-error";
 import { GoogleIcon, MicrosoftIcon } from "../SocialIcons";
 import { Link } from "@tanstack/react-router";
+import { useSignin } from "../../api/auth.queries";
+import { useNavigate } from "@tanstack/react-router";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function LoginForm() {
+  const signinMutation = useSignin()
+  const navigate = useNavigate()
   const form = useForm({
     defaultValues: { email: "", password: "" } satisfies LoginFormValues,
-    onSubmit: async () => {},
+    onSubmit: async ({ value }) => {
+      await signinMutation.mutateAsync(value);
+      navigate({ to: "/dashboard"})
+    },
   });
   return (
     <form
@@ -27,6 +35,15 @@ export function LoginForm() {
         form.handleSubmit();
       }}
     >
+      {signinMutation.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {signinMutation.error instanceof Error
+              ? signinMutation.error.message
+              : "Invalid credentials. Please try again."}
+          </AlertDescription>
+        </Alert>
+      )}
       <form.Field
         name="email"
         validators={{
@@ -75,7 +92,7 @@ export function LoginForm() {
           Forgot password?
         </Link>
       </div>
-      <ActionButton type="submit">Sign In</ActionButton>
+      <ActionButton type="submit" isLoading={signinMutation.isPending} loadingText="Signing In...">Sign In</ActionButton>
 
       <AuthDivider>or continue with</AuthDivider>
 
