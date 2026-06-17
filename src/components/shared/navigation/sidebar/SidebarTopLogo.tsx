@@ -22,7 +22,7 @@ export function SideBarTop({ collapsed }: SideBarTopProps) {
           )}
         >
           <CareSyncLogoBadge
-            tone={resolvedTheme === "dark" ? "dark" : "light"}
+            tone="light"
             size={54}
           />
         </div>
