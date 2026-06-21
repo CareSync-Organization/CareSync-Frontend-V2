@@ -4,10 +4,33 @@ import {
   createFileRoute,
   Outlet,
   useRouterState,
+  redirect,
 } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { queryKeys } from "@/lib/query-keys";
+import { getMe } from "@/features/auth/api/auth.api";
+import { mapUserDto } from "@/features/auth/api/auth.mapper";
+
+import { useStores } from "@/features/stores/api/stores.queries";
+import { useActiveStoreStore } from "@/lib/stores/active-store-store";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/_app")({
+  beforeLoad: async ({ context, location }) => {
+    try {
+      await context.queryClient.ensureQueryData({
+        queryKey: queryKeys.auth.me(),
+        queryFn: async () => mapUserDto(await getMe()),
+      });
+    } catch (error) {
+      throw redirect({
+        to: "/login",
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
   component: RouteComponent,
 });
 
@@ -15,6 +38,22 @@ function RouteComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const topSegment = pathname.split("/")[1];
 
+  const { data: stores = [], isLoading } = useStores();
+  const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
+  const setActiveStoreId = useActiveStoreStore(
+    (state) => state.setActiveStoreId,
+  );
+
+  useEffect(() => {
+    if (!isLoading && stores.length > 0) {
+      const hasActive = stores.some((s) => s.id === activeStoreId);
+      if (!activeStoreId || !hasActive) {
+        setActiveStoreId(stores[0].id);
+      }
+    } else if (!isLoading && stores.length === 0) {
+      setActiveStoreId(null);
+    }
+  }, [stores, isLoading, activeStoreId, setActiveStoreId]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -28,9 +67,18 @@ function RouteComponent() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
-          className="min-w-0 flex-1 overflow-y-auto px-6 py-10"
+          className="min-w-0 flex-1 overflow-y-auto px-4 md:px-8 lg:px-12 py-10"
         >
-          <Outlet />
+          {!isLoading && stores.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+              <h2 className="text-xl font-semibold">No store found</h2>
+              <p className="text-muted-foreground">
+                Create a store using the store switcher.
+              </p>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </motion.main>
       </div>
     </div>

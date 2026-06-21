@@ -16,9 +16,10 @@ export function ResponseTemplatesCard() {
         <ActionButton
           type="button"
           variant="outline"
+          disabled
           startIcon={<LayoutTemplate className="size-4" />}
         >
-          Manage Templates
+          Manage Templates (Coming Soon)
         </ActionButton>
       </CardContent>
     </Card>

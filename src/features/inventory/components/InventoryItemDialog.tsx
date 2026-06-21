@@ -1,4 +1,5 @@
 import { useForm } from "@tanstack/react-form";
+import { Wand2 } from "lucide-react";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { TextInput } from "@/components/shared/forms/InputField";
@@ -17,12 +18,23 @@ import { getFieldError } from "@/lib/get-field-error";
 import { inventoryItemSchema } from "../schemas/inventory-item.schema";
 import type { InventoryItem, InventoryItemFormValues } from "../types/inventory.types";
 
+function generateSku(name: string, category: string): string {
+  const cleanName = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const cleanCategory = category.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const first = cleanName[0] ?? "X";
+  const last = cleanName[cleanName.length - 1] ?? "X";
+  const catFirst = cleanCategory[0] ?? "X";
+  const num = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
+  return `${first}${catFirst}${last}${num}`;
+}
+
 export type InventoryItemDialogProps = {
   open: boolean;
   mode: "create" | "edit";
   item: InventoryItem | null;
   onOpenChange: (open: boolean) => void;
   onSave: (values: InventoryItemFormValues) => void;
+  isSaving?: boolean;
 };
 
 export function InventoryItemDialog({
@@ -31,14 +43,15 @@ export function InventoryItemDialog({
   item,
   onOpenChange,
   onSave,
+  isSaving = false,
 }: InventoryItemDialogProps) {
   const form = useForm({
     defaultValues: {
-      productName: item?.productName ?? "",
+      name: item?.name ?? "",
       sku: item?.sku ?? "",
       category: item?.category ?? "",
       price: item?.price ?? 0,
-      stockQuantity: item?.stockQuantity ?? 0,
+      quantity: item?.quantity ?? 0,
       description: item?.description ?? "",
     } satisfies InventoryItemFormValues,
     onSubmit: ({ value }) => onSave(value),
@@ -67,31 +80,14 @@ export function InventoryItemDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <form.Field
-              name="productName"
-              validators={{ onChange: inventoryItemSchema.shape.productName }}
+              name="name"
+              validators={{ onChange: inventoryItemSchema.shape.name }}
             >
               {(field) => (
                 <TextInput
                   name={field.name}
                   label="Product Name"
                   placeholder="e.g., Classic White T-Shirt"
-                  value={field.state.value}
-                  error={getFieldError(field.state.meta.errors)}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-              )}
-            </form.Field>
-
-            <form.Field
-              name="sku"
-              validators={{ onChange: inventoryItemSchema.shape.sku }}
-            >
-              {(field) => (
-                <TextInput
-                  name={field.name}
-                  label="SKU"
-                  placeholder="e.g., TS-001"
                   value={field.state.value}
                   error={getFieldError(field.state.meta.errors)}
                   onBlur={field.handleBlur}
@@ -108,11 +104,44 @@ export function InventoryItemDialog({
                 <TextInput
                   name={field.name}
                   label="Category"
+                  placeholder="e.g., Clothing"
                   value={field.state.value}
                   error={getFieldError(field.state.meta.errors)}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
+              )}
+            </form.Field>
+
+            <form.Field
+              name="sku"
+              validators={{ onChange: inventoryItemSchema.shape.sku }}
+            >
+              {(field) => (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+                  <TextInput
+                    name={field.name}
+                    label="Product Code / SKU"
+                    placeholder="e.g., CCT347"
+                    value={field.state.value}
+                    error={getFieldError(field.state.meta.errors)}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                  <ActionButton
+                    type="button"
+                    variant="outline"
+                    startIcon={<Wand2 className="size-4" />}
+                    onClick={() => {
+                      const name = form.getFieldValue("name");
+                      const category = form.getFieldValue("category");
+                      if (!name.trim() || !category.trim()) return;
+                      form.setFieldValue("sku", generateSku(name, category));
+                    }}
+                  >
+                    Generate
+                  </ActionButton>
+                </div>
               )}
             </form.Field>
 
@@ -138,14 +167,14 @@ export function InventoryItemDialog({
             </form.Field>
 
             <form.Field
-              name="stockQuantity"
-              validators={{ onChange: inventoryItemSchema.shape.stockQuantity }}
+              name="quantity"
+              validators={{ onChange: inventoryItemSchema.shape.quantity }}
             >
               {(field) => (
                 <div className="sm:col-span-2">
                   <TextInput
                     name={field.name}
-                    label="Stock Quantity"
+                    label="Quantity"
                     type="number"
                     min={0}
                     step={1}
@@ -183,7 +212,7 @@ export function InventoryItemDialog({
                 Cancel
               </ActionButton>
             </DialogClose>
-            <ActionButton type="submit">
+            <ActionButton type="submit" isLoading={isSaving} loadingText="Saving...">
               {mode === "edit" ? "Save Changes" : "Add Product"}
             </ActionButton>
           </DialogFooter>

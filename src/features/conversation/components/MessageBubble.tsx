@@ -1,17 +1,25 @@
-import { Bot, User } from "lucide-react";
+import { User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { ChatMessage } from "../types/chat.types";
+import type { Message } from "../types/conversation.types";
 
 type MessageBubbleProps = {
-  message: ChatMessage;
+  message: Message;
+  customerName: string;
 };
 
-export function MessageBubble({ message }: MessageBubbleProps) {
-  const isOutgoing =
-    message.sender.role === "agent" ||
-    message.sender.role === "admin" ||
-    message.sender.role === "ai";
+const SENDER_DISPLAY: Record<string, string> = {
+  customer: "",        // filled in from customerName prop
+  agent: "Admin",
+  bot: "CareSync AI",
+  system: "System",
+};
+
+export function MessageBubble({ message, customerName }: MessageBubbleProps) {
+  const isOutgoing = message.senderType !== "customer" && message.senderType !== "system";
+  const senderName =
+    message.senderType === "customer" ? customerName : (SENDER_DISPLAY[message.senderType] ?? message.senderType);
+
   return (
     <div className={cn("flex gap-2", isOutgoing && "justify-end")}>
       {!isOutgoing ? (
@@ -23,28 +31,21 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       <div
         className={cn(
           "max-w-[75%] rounded-xl px-3 py-2 text-sm shadow-sm",
-          isOutgoing
-            ? "bg-primary/10 text-foreground"
-            : "bg-muted text-foreground",
+          isOutgoing ? "bg-primary/10 text-foreground" : "bg-muted text-foreground",
         )}
       >
-        <p className="mb-1 text-xs font-medium text-muted-foreground">
-          {message.sender.name}
-        </p>
-        {message.sender.role === "ai" ? (
-          <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
-            <Bot className="size-3" />
-            AI Response
-          </div>
-        ) : null}
+        <p className="mb-1 text-xs font-medium text-muted-foreground">{senderName}</p>
 
-        <p>{message.body}</p>
+        <p>{message.content}</p>
 
         <p className="mt-1 text-xs text-muted-foreground">
           {new Date(message.createdAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           })}
+          {message.senderType !== "customer" ? (
+            <span className="ml-2 capitalize">· {message.deliveryStatus}</span>
+          ) : null}
         </p>
       </div>
     </div>

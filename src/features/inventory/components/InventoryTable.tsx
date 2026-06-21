@@ -20,7 +20,6 @@ import type { InventoryItem } from "../types/inventory.types";
 import {
   availabilityLabel,
   formatDateTime,
-  getAvailability,
   sourceLabel,
 } from "../utils/inventory.utils";
 
@@ -28,7 +27,7 @@ type InventoryTableProps = {
   items: InventoryItem[];
   onAddItem: () => void;
   onEditItem: (item: InventoryItem) => void;
-  onDeleteItem: (itemId: string) => void;
+  onDeleteItem: (item: InventoryItem) => void;
 };
 
 export function InventoryTable({
@@ -42,46 +41,44 @@ export function InventoryTable({
       {
         accessorKey: "sku",
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="SKU / Part Number" />
+          <DataTableColumnHeader column={column} title="Product Code / SKU" />
         ),
         cell: ({ row }) => (
           <span className="font-medium">{row.original.sku}</span>
         ),
       },
       {
-        accessorKey: "productName",
+        accessorKey: "name",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Product Name" />
         ),
         cell: ({ row }) => (
           <span className="block max-w-55 whitespace-normal font-medium">
-            {row.original.productName}
+            {row.original.name}
           </span>
         ),
       },
       {
-        accessorKey: "stockQuantity",
+        accessorKey: "quantity",
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Stock Level" />
+          <DataTableColumnHeader column={column} title="Quantity" />
         ),
       },
       {
-        id: "availability",
-        accessorFn: (row) => getAvailability(row.stockQuantity),
+        accessorKey: "availability",
         header: "Availability",
         filterFn: "equalsString",
         cell: ({ row }) => {
-          const availability = getAvailability(row.original.stockQuantity);
+          const availability = row.original.availability;
 
           return (
             <Badge
               className={cn(
-                availability === "in-stock" &&
+                availability === "in_stock" &&
                   "bg-emerald-500/10 text-emerald-500",
-                availability === "low-stock" &&
+                availability === "low_stock" &&
                   "bg-amber-500/10 text-amber-500",
-                availability === "out-of-stock" &&
-                  "bg-red-500/10 text-red-500",
+                availability === "out_of_stock" && "bg-red-500/10 text-red-500",
               )}
             >
               {availabilityLabel[availability]}
@@ -96,12 +93,10 @@ export function InventoryTable({
         cell: ({ row }) => (
           <Badge
             className={cn(
-              row.original.source === "manual" &&
-                "bg-primary/10 text-primary",
+              row.original.source === "manual" && "bg-primary/10 text-primary",
               row.original.source === "shopify" &&
                 "bg-violet-500/10 text-shopify",
-              row.original.source === "daraz" &&
-                "bg-orange-500/10 text-daraz",
+              row.original.source === "daraz" && "bg-orange-500/10 text-daraz",
             )}
           >
             {sourceLabel[row.original.source]}
@@ -109,17 +104,23 @@ export function InventoryTable({
         ),
       },
       {
-        accessorKey: "lastUpdated",
+        accessorKey: "updatedAt",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Last Updated" />
         ),
-        cell: ({ row }) => formatDateTime(row.original.lastUpdated),
+        cell: ({ row }) => formatDateTime(row.original.updatedAt),
       },
       {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => {
-          if (row.original.source !== "manual") {
+          if (row.original.isOptimistic) {
+            return (
+              <span className="text-xs text-muted-foreground">Saving...</span>
+            );
+          }
+
+          if (row.original.isReadOnly) {
             return (
               <span className="text-xs text-muted-foreground">Read-only</span>
             );
@@ -130,16 +131,17 @@ export function InventoryTable({
               <button
                 type="button"
                 className="grid size-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                aria-label={`Edit ${row.original.productName}`}
+                aria-label={`Edit ${row.original.name}`}
                 onClick={() => onEditItem(row.original)}
               >
                 <Edit2 className="size-4" />
               </button>
+
               <button
                 type="button"
                 className="grid size-8 place-items-center rounded-lg text-destructive transition hover:bg-destructive/10"
-                aria-label={`Delete ${row.original.productName}`}
-                onClick={() => onDeleteItem(row.original.id)}
+                aria-label={`Delete ${row.original.name}`}
+                onClick={() => onDeleteItem(row.original)}
               >
                 <Trash2 className="size-4" />
               </button>
@@ -167,6 +169,7 @@ export function InventoryTable({
                 value={(table.getState().globalFilter as string) ?? ""}
                 onChange={(event) => table.setGlobalFilter(event.target.value)}
               />
+
               <Select
                 value={(sourceColumn?.getFilterValue() as string) ?? "all"}
                 onValueChange={(value) =>
@@ -185,6 +188,7 @@ export function InventoryTable({
                   <SelectItem value="daraz">Daraz</SelectItem>
                 </SelectContent>
               </Select>
+
               <Select
                 value={
                   (availabilityColumn?.getFilterValue() as string) ?? "all"
@@ -200,12 +204,13 @@ export function InventoryTable({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All availability</SelectItem>
-                  <SelectItem value="in-stock">In Stock</SelectItem>
-                  <SelectItem value="low-stock">Low Stock</SelectItem>
-                  <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                  <SelectItem value="in_stock">In Stock</SelectItem>
+                  <SelectItem value="low_stock">Low Stock</SelectItem>
+                  <SelectItem value="out_of_stock">Out of Stock</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
             <div className="flex flex-wrap gap-2">
               <ActionButton
                 type="button"
@@ -218,6 +223,7 @@ export function InventoryTable({
               >
                 Reset
               </ActionButton>
+
               <ActionButton
                 type="button"
                 startIcon={<Plus className="size-4" />}

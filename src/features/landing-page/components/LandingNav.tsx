@@ -15,7 +15,7 @@ export function LandingNav() {
           <CareSyncLogoBadge
             tone={"light"}
             size={44}
-            className="bg-primary dark:bg-[#282828]"
+            className="bg-[#35928f] dark:bg-[#282828]"
           />
           <div className="leading-none">
             <p className="text-base font-semibold text-foreground">CareSync</p>

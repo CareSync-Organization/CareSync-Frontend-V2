@@ -1,71 +1,140 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
 
 import { ActionButton } from "@/components/shared/ActionButton";
-import { AddStoreDialog } from "./AddStoreDialog";
-import {
-  ConnectorActionDialog,
-  type ConnectorAction,
-} from "./ConnectorActionDialog";
+import { useActiveStoreStore } from "@/lib/stores/active-store-store";
+
+import { useStoreConnectors } from "../api/connectors.queries";
+import { connectors } from "../mocks/connectors.mock";
+import type { ConnectorRecord } from "../types/connectors.types";
 import { ConnectorCard } from "./ConnectorCard";
-import { DisconnectConnectorDialog } from "./DisconnectConnectorDialog";
 import { RequestIntegrationDialog } from "./RequestIntegrationDialog";
-import { type Connector, connectors } from "../mocks/connectors.mock";
+import { WhatsAppConfigureDialog } from "./whatsapp/ConfigureDialog";
+import { WhatsAppConnectDialog } from "./whatsapp/ConnectDialog";
+import { WhatsAppDisconnectDialog } from "./whatsapp/DisconnectDialog";
+import { ShopifyConfigureDialog } from "./shopify/ConfigureDialog";
+import { ShopifyConnectDialog } from "./shopify/ConnectDialog";
+import { ShopifyDisconnectDialog } from "./shopify/DisconnectDialog";
+
+type WhatsAppDialogState =
+  | { type: "connect" }
+  | { type: "reconnect" }
+  | { type: "configure"; connector: ConnectorRecord }
+  | { type: "disconnect"; connector: ConnectorRecord }
+  | null;
+
+type ShopifyDialogState =
+  | { type: "connect" }
+  | { type: "reconnect" }
+  | { type: "configure"; connector: ConnectorRecord }
+  | { type: "disconnect"; connector: ConnectorRecord }
+  | null;
 
 export function ConnectorsPage() {
-  const [isAddStoreOpen, setIsAddStoreOpen] = useState(false);
+  const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
+  const { data: storeConnectors = [] } = useStoreConnectors(
+    activeStoreId ?? undefined,
+  );
+
   const [isRequestIntegrationOpen, setIsRequestIntegrationOpen] =
     useState(false);
-  const [connectorAction, setConnectorAction] = useState<{
-    connector: Connector;
-    action: ConnectorAction;
-  } | null>(null);
-  const [disconnectConnector, setDisconnectConnector] =
-    useState<Connector | null>(null);
+  const [whatsAppDialog, setWhatsAppDialog] =
+    useState<WhatsAppDialogState>(null);
+  const [shopifyDialog, setShopifyDialog] =
+    useState<ShopifyDialogState>(null);
+
+  const connectorCards = connectors.map((connector) => {
+    const backendConnector = storeConnectors.find(
+      (item) => item.channel === connector.channel,
+    );
+
+    if (!backendConnector) return connector;
+
+    return {
+      ...connector,
+      status:
+        backendConnector.status === "active"
+          ? ("connected" as const)
+          : backendConnector.status === "failed"
+            ? ("error" as const)
+            : ("available" as const),
+      lastSynced: new Date(backendConnector.updatedAt).toLocaleString(),
+      displayName: backendConnector.displayName,
+      lastError: backendConnector.lastError,
+    };
+  });
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1>Stores & Connectors</h1>
-          <p className="text-muted-foreground">
-            Manage your sales channels and communication platform integrations.
-          </p>
-        </div>
-
-        <ActionButton
-          type="button"
-          startIcon={<Plus className="size-4" />}
-          className="w-fit"
-          onClick={() => setIsAddStoreOpen(true)}
-        >
-          Add Store
-        </ActionButton>
+      <div>
+        <h1>Stores & Connectors</h1>
+        <p className="text-muted-foreground">
+          Manage your sales channels and communication platform integrations.
+        </p>
       </div>
 
       <div className="space-y-3">
         <h2 className="text-base font-semibold">Main Store</h2>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {connectors.map((connector) => (
-            <ConnectorCard
-              key={connector.channel}
-              channel={connector.channel}
-              description={connector.description}
-              status={connector.status}
-              lastSynced={connector.lastSynced}
-              onConnect={() =>
-                setConnectorAction({ connector, action: "connect" })
-              }
-              onConfigure={() =>
-                setConnectorAction({ connector, action: "configure" })
-              }
-              onDisconnect={() => setDisconnectConnector(connector)}
-              onReconnect={() =>
-                setConnectorAction({ connector, action: "reconnect" })
-              }
-            />
-          ))}
+          {connectorCards.map((connector) => {
+            const backendConnector = storeConnectors.find(
+              (item) => item.channel === connector.channel,
+            );
+
+            return (
+              <ConnectorCard
+                key={connector.channel}
+                channel={connector.channel}
+                description={connector.description}
+                status={connector.status}
+                lastSynced={connector.lastSynced}
+                onConnect={() => {
+                  if (connector.channel === "whatsapp") {
+                    setWhatsAppDialog({ type: "connect" });
+                  }
+                  if (connector.channel === "shopify") {
+                    setShopifyDialog({ type: "connect" });
+                  }
+                }}
+                onConfigure={() => {
+                  if (connector.channel === "whatsapp" && backendConnector) {
+                    setWhatsAppDialog({
+                      type: "configure",
+                      connector: backendConnector,
+                    });
+                  }
+                  if (connector.channel === "shopify" && backendConnector) {
+                    setShopifyDialog({
+                      type: "configure",
+                      connector: backendConnector,
+                    });
+                  }
+                }}
+                onDisconnect={() => {
+                  if (connector.channel === "whatsapp" && backendConnector) {
+                    setWhatsAppDialog({
+                      type: "disconnect",
+                      connector: backendConnector,
+                    });
+                  }
+                  if (connector.channel === "shopify" && backendConnector) {
+                    setShopifyDialog({
+                      type: "disconnect",
+                      connector: backendConnector,
+                    });
+                  }
+                }}
+                onReconnect={() => {
+                  if (connector.channel === "whatsapp") {
+                    setWhatsAppDialog({ type: "reconnect" });
+                  }
+                  if (connector.channel === "shopify") {
+                    setShopifyDialog({ type: "reconnect" });
+                  }
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -85,32 +154,72 @@ export function ConnectorsPage() {
         </ActionButton>
       </div>
 
-      <AddStoreDialog
-        open={isAddStoreOpen}
-        onOpenChange={setIsAddStoreOpen}
-      />
       <RequestIntegrationDialog
         open={isRequestIntegrationOpen}
         onOpenChange={setIsRequestIntegrationOpen}
       />
-      <ConnectorActionDialog
-        open={connectorAction !== null}
+
+      <WhatsAppConnectDialog
+        open={
+          whatsAppDialog?.type === "connect" ||
+          whatsAppDialog?.type === "reconnect"
+        }
         onOpenChange={(open) => {
-          if (!open) {
-            setConnectorAction(null);
-          }
+          if (!open) setWhatsAppDialog(null);
         }}
-        connector={connectorAction?.connector ?? null}
-        action={connectorAction?.action ?? null}
       />
-      <DisconnectConnectorDialog
-        open={disconnectConnector !== null}
+
+      <WhatsAppConfigureDialog
+        open={whatsAppDialog?.type === "configure"}
         onOpenChange={(open) => {
-          if (!open) {
-            setDisconnectConnector(null);
-          }
+          if (!open) setWhatsAppDialog(null);
         }}
-        connector={disconnectConnector}
+        connector={
+          whatsAppDialog?.type === "configure" ? whatsAppDialog.connector : null
+        }
+      />
+
+      <WhatsAppDisconnectDialog
+        open={whatsAppDialog?.type === "disconnect"}
+        onOpenChange={(open) => {
+          if (!open) setWhatsAppDialog(null);
+        }}
+        connector={
+          whatsAppDialog?.type === "disconnect"
+            ? whatsAppDialog.connector
+            : null
+        }
+      />
+      <ShopifyConnectDialog
+        open={
+          shopifyDialog?.type === "connect" ||
+          shopifyDialog?.type === "reconnect"
+        }
+        onOpenChange={(open) => {
+          if (!open) setShopifyDialog(null);
+        }}
+      />
+
+      <ShopifyConfigureDialog
+        open={shopifyDialog?.type === "configure"}
+        onOpenChange={(open) => {
+          if (!open) setShopifyDialog(null);
+        }}
+        connector={
+          shopifyDialog?.type === "configure" ? shopifyDialog.connector : null
+        }
+      />
+
+      <ShopifyDisconnectDialog
+        open={shopifyDialog?.type === "disconnect"}
+        onOpenChange={(open) => {
+          if (!open) setShopifyDialog(null);
+        }}
+        connector={
+          shopifyDialog?.type === "disconnect"
+            ? shopifyDialog.connector
+            : null
+        }
       />
     </section>
   );

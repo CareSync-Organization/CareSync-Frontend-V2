@@ -7,7 +7,7 @@ export function SignUpPage() {
         <aside className="w-1/2 hidden lg:block">
         <LeftPanelSignUp />
         </aside>
-        <div className="w-1/2 px-32 py-4 flex flex-col justify-center items-center gap-2">
+        <div className="w-full lg:w-1/2 px-12 lg:px-32 py-4 flex flex-col justify-center items-center gap-2">
         <h1>Create Your Account</h1>
         <p>Join our customer care platform</p>
         <SignUpForm />

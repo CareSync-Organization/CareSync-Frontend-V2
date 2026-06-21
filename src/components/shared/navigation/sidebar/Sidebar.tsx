@@ -6,12 +6,27 @@ import { SideBarCollapseButton } from "@/components/shared/navigation/sidebar/Si
 import { SideBarTop } from "@/components/shared/navigation/sidebar/SidebarTopLogo";
 import { useSidebarStore } from "@/lib/stores/sidebar-store";
 import { mainNavItems, secondaryNavItems } from "../nav-items";
+import { useLogout } from "@/features/auth/api/auth.queries";
+import { useNavigate } from "@tanstack/react-router";
 
 export function Sidebar() {
   const collapsed = useSidebarStore((state) => state.collapsed);
   const toggleCollapsed = useSidebarStore((state) => state.toggleCollapsed);
   const mainItemsAboveGrow = mainNavItems.slice(0, 6);
   const mainItemsAfterGrow = mainNavItems.slice(6);
+
+  const logoutMutation = useLogout();
+  const navigate = useNavigate();
+
+  const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    try {
+      await navigate({ to: "/login" });
+      await logoutMutation.mutateAsync();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <aside
@@ -66,6 +81,8 @@ export function Sidebar() {
             icon={item.icon}
             tileText={item.label}
             tileLink={item.to}
+            onClick={item.label === "Logout" ? handleLogout : undefined}
+            isLoading={item.label === "Logout" ? logoutMutation.isPending : undefined}
           />
         ))}
       </motion.nav>

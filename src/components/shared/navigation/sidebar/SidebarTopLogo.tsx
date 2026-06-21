@@ -1,14 +1,12 @@
 import { cn } from "@/lib/utils";
 import { CareSyncLogoBadge } from "../../brand/animated-caresync-logo-icon";
 import { Link } from "@tanstack/react-router";
-import { useTheme } from "next-themes";
 
 type SideBarTopProps = {
   collapsed: boolean;
 };
 
 export function SideBarTop({ collapsed }: SideBarTopProps) {
-  const { resolvedTheme } = useTheme();
   return (
     <div className="mb-5">
       <Link
@@ -22,7 +20,7 @@ export function SideBarTop({ collapsed }: SideBarTopProps) {
           )}
         >
           <CareSyncLogoBadge
-            tone={resolvedTheme === "dark" ? "dark" : "light"}
+            tone="light"
             size={54}
           />
         </div>

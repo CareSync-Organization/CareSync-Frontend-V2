@@ -18,9 +18,14 @@ import {
 } from "@/features/auth/schemas/signup.schema";
 import { getFieldError } from "@/lib/get-field-error";
 import { CheckboxField } from "@/components/shared/forms/CheckboxField";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useSignup } from "../../api/auth.queries";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getApiFieldError } from "@/lib/api"
 
 export function SignUpForm() {
+  const navigate = useNavigate()
+  const signupMutation = useSignup()
   const form = useForm({
     defaultValues: {
       fullName: "",
@@ -29,10 +34,26 @@ export function SignUpForm() {
       confirmPassword: "",
       acceptedTerms: false as boolean,
     } satisfies SignUpFormValues,
-    onSubmit: ({ value }) => {
-      console.log(value);
+    onSubmit: async ({ value }) => {
+      await signupMutation.mutateAsync({
+        name: value.fullName,
+        email: value.email,
+        password: value.password,
+        passwordConfirm: value.confirmPassword
+      });
+      navigate({to: "/dashboard"})
     },
   });
+
+  const nameServerError = getApiFieldError(signupMutation.error, "name");
+  const emailServerError = getApiFieldError(signupMutation.error, "email");
+  const passwordServerError = getApiFieldError(signupMutation.error, "password");
+  const confirmPasswordServerError = getApiFieldError(
+    signupMutation.error,
+    "password_confirm",
+  );
+
+
   return (
     <form
       className="grid gap-4 w-full max-w-sm"
@@ -42,6 +63,15 @@ export function SignUpForm() {
         form.handleSubmit();
       }}
     >
+      {signupMutation.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {signupMutation.error instanceof Error
+              ? signupMutation.error.message
+              : "Registration failed. Please check your inputs and try again."}
+          </AlertDescription>
+        </Alert>
+      )}
       <form.Field
         name="fullName"
         validators={{ onChange: signupSchema.shape.fullName }}
@@ -53,9 +83,9 @@ export function SignUpForm() {
             placeholder="Enter your fullname"
             startIcon={<HugeiconsIcon icon={UserIcon} size={16} />}
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? nameServerError}
             onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
+            onChange={(event) => {signupMutation.reset(); field.handleChange(event.target.value)}}
           />
         )}
       </form.Field>
@@ -70,9 +100,9 @@ export function SignUpForm() {
             placeholder="you@example.com"
             startIcon={<HugeiconsIcon icon={MailEdit01Icon} size={16} />}
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? emailServerError}
             onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
+            onChange={(event) => {signupMutation.reset(); field.handleChange(event.target.value)}}
           />
         )}
       </form.Field>
@@ -90,10 +120,11 @@ export function SignUpForm() {
             type="password"
             placeholder="Enter your password"
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? passwordServerError}
             startIcon={<HugeiconsIcon icon={LockPasswordIcon} />}
             onBlur={field.handleBlur}
             onChange={(event) => {
+              signupMutation.reset();
               field.handleChange(event.target.value);
             }}
           />
@@ -118,10 +149,11 @@ export function SignUpForm() {
             type="password"
             placeholder="Enter your password again"
             value={field.state.value}
-            error={getFieldError(field.state.meta.errors)}
+            error={getFieldError(field.state.meta.errors) ?? confirmPasswordServerError}
             startIcon={<HugeiconsIcon icon={LockPasswordIcon} />}
             onBlur={field.handleBlur}
             onChange={(event) => {
+              signupMutation.reset();
               field.handleChange(event.target.value);
             }}
           />
@@ -143,7 +175,7 @@ export function SignUpForm() {
             onBlur={field.handleBlur}
             error={getFieldError(field.state.meta.errors)}
             label={
-              <>
+              <div>
                 I agree to the{" "}
                 <a href="/terms" className="text-primary hover:underline">
                   Terms of Service
@@ -152,12 +184,12 @@ export function SignUpForm() {
                 <a href="/privacy" className="text-primary hover:underline">
                   Privacy Policy
                 </a>
-              </>
+              </div>
             }
           />
         )}
       </form.Field>
-      <ActionButton type="submit">Create Account</ActionButton>
+      <ActionButton type="submit" isLoading={signupMutation.isPending} loadingText="Creating Account...">Create Account</ActionButton>
 
       <AuthDivider children="or sign up with" />
 
@@ -176,7 +208,7 @@ export function SignUpForm() {
         Continue with Microsoft 365
       </ActionButton>
       <p className="text-center">
-        Don't have an account?{" "}
+        Already have an Account?{" "}
         <Link to="/login" className="font-semibold">
           Sign In
         </Link>

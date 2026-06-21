@@ -17,13 +17,28 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeModeToggle } from "@/components/shared/ThemeModeToggle";
 import { CareSyncLogoBadge } from "@/components/shared/brand/animated-caresync-logo-icon";
 import { NotificationPopover } from "@/components/shared/navigation/navbar/NotificationsPopover";
-import { StoreSwitcher } from "@/components/shared/navigation/navbar/StoreSwitcher";
+import { StoreSwitcher } from "@/features/stores/components/StoreSwitcher";
 import {
   mainNavItems,
   secondaryNavItems,
 } from "@/components/shared/navigation/nav-items";
+import { useLogout } from "@/features/auth/api/auth.queries";
+import { useNavigate } from "@tanstack/react-router";
 
 export function MobileDrawer() {
+  const logoutMutation = useLogout();
+  const navigate = useNavigate();
+
+  const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    try {
+      await navigate({ to: "/login" });
+      await logoutMutation.mutateAsync();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <Drawer direction="left">
       <DrawerTrigger asChild>
@@ -93,6 +108,8 @@ export function MobileDrawer() {
                   to={item.to}
                   icon={item.icon}
                   label={item.label}
+                  onClick={item.label === "Logout" ? handleLogout : undefined}
+                  isLoading={item.label === "Logout" ? logoutMutation.isPending : undefined}
                 />
               ))}
             </nav>
@@ -107,9 +124,11 @@ type MobileDrawerLinkProps = {
   to: string;
   icon: React.ReactNode;
   label: string;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  isLoading?: boolean;
 };
 
-function MobileDrawerLink({ to, icon, label }: MobileDrawerLinkProps) {
+function MobileDrawerLink({ to, icon, label, onClick, isLoading }: MobileDrawerLinkProps) {
   return (
     <motion.div
       variants={{
@@ -121,13 +140,18 @@ function MobileDrawerLink({ to, icon, label }: MobileDrawerLinkProps) {
       <DrawerClose asChild>
         <Link
           to={to}
+          onClick={onClick}
           className="flex items-center gap-3 rounded-xl p-3 text-sm font-medium text-muted-foreground no-underline transition hover:bg-primary/10 hover:text-primary hover:no-underline"
           activeProps={{
             className: "bg-primary/10 text-primary",
           }}
         >
           <span className="flex size-5 items-center justify-center">
-            {icon}
+            {isLoading ? (
+              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              icon
+            )}
           </span>
           <span>{label}</span>
         </Link>

@@ -1,4 +1,5 @@
-import { Bot, ChevronDown, Flag, Shield, UserPlus } from "lucide-react";
+import type { ElementType } from "react";
+import { Bot, ChevronDown, Flag, UserCog } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -9,83 +10,47 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ChatConversation, MessageSenderRole } from "../types/chat.types";
+import { useUpdateConversationStatus } from "../api/conversation.queries";
+import type { ConversationStatus, ConversationSummary } from "../types/conversation.types";
 
 type ConversationActionsProps = {
-  conversation: ChatConversation;
-  currentUserRole?: Extract<MessageSenderRole, "admin" | "agent">;
+  conversation: ConversationSummary;
+  storeId: string | null | undefined;
 };
 
-const demoAgents = [
-  { id: "agent_1", name: "John Doe" },
-  { id: "agent_2", name: "Sarah Williams" },
-  { id: "agent_3", name: "Mike Chen" },
-];
+type StatusOption = {
+  label: string;
+  helper: string;
+  icon: ElementType;
+  disabled: boolean;
+  status: ConversationStatus;
+};
 
 export function ConversationActions({
   conversation,
-  currentUserRole = "admin",
+  storeId,
 }: ConversationActionsProps) {
-  const escalationOptions =
-    currentUserRole === "admin"
-      ? [
-          {
-            label: "Move control to CareSync AI",
-            helper: "Let the AI agent continue the conversation.",
-            icon: Bot,
-            disabled: conversation.mode === "ai",
-          },
-          {
-            label: conversation.assignedTo
-              ? `Move control to ${conversation.assignedTo.name}`
-              : "Move control to assigned human agent",
-            helper: conversation.assignedTo
-              ? "Return control to the assigned human agent."
-              : "Assign this conversation before handing it to a human agent.",
-            icon: UserPlus,
-            disabled: !conversation.assignedTo || conversation.mode === "human",
-          },
-        ]
-      : [
-          {
-            label: "Escalate to admin",
-            helper: "Ask an admin to take ownership of this conversation.",
-            icon: Shield,
-            disabled: false,
-          },
-          {
-            label: "Move control to CareSync AI",
-            helper: "Let the AI agent continue the conversation.",
-            icon: Bot,
-            disabled: conversation.mode === "ai",
-          },
-        ];
+  const updateStatus = useUpdateConversationStatus(storeId);
+
+  const escalationOptions: StatusOption[] = [
+    {
+      label: "Escalate to admin",
+      helper: "Pause AI replies and allow manual admin responses.",
+      icon: UserCog,
+      disabled: conversation.status === "manual",
+      status: "manual",
+    },
+    {
+      label: "Escalate to AI bot",
+      helper: "Let the AI bot handle new customer messages.",
+      icon: Bot,
+      disabled: conversation.status === "open",
+      status: "open",
+    },
+  ];
 
   return (
     <div className="flex items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button type="button" variant="outline" className="h-10 gap-2">
-            <UserPlus className="size-4" />
-            Assign
-            <ChevronDown className="size-4 opacity-70" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Assign to agent</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {demoAgents.map((agent) => (
-            <DropdownMenuItem
-              key={agent.id}
-              onSelect={() => console.log("Assign conversation", conversation.id, agent.id)}
-            >
-              <UserPlus className="size-4" />
-              {agent.name}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button type="button" variant="outline" className="h-10 gap-2">
@@ -95,26 +60,23 @@ export function ConversationActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
-          <DropdownMenuLabel>Escalation path</DropdownMenuLabel>
+          <DropdownMenuLabel>Conversation owner</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {escalationOptions.map((option) => {
             const Icon = option.icon;
-
             return (
               <DropdownMenuItem
-                key={option.label}
-                disabled={option.disabled}
+                key={option.status}
+                disabled={option.disabled || updateStatus.isPending}
                 className="items-start gap-3 py-2"
                 onSelect={() =>
-                  console.log("Escalate conversation", conversation.id, option.label)
+                  updateStatus.mutate({ conversationId: conversation.id, status: option.status })
                 }
               >
-                <Icon className="mt-0.5 size-4" />
+                <Icon className="mt-0.5 size-4 shrink-0" />
                 <span className="grid gap-0.5">
                   <span>{option.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {option.helper}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{option.helper}</span>
                 </span>
               </DropdownMenuItem>
             );

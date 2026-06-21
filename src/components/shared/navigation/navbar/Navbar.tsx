@@ -1,12 +1,16 @@
 import { ThemeModeToggle } from "@/components/shared/ThemeModeToggle"
 import { ProfileSnapshot } from "./ProfileSnapshot"
-import { StoreSwitcher } from "./StoreSwitcher"
+import { StoreSwitcher } from "../../../../features/stores/components/StoreSwitcher"
 import { NotificationPopover } from "./NotificationsPopover"
 import { MobileDrawer } from "@/components/shared/navigation/mobile-drawer/drawer"
 import { CareSyncLogoBadge } from "../../brand/animated-caresync-logo-icon"
 import { UserAvatar } from "../../avatar/UserAvatar"
+import { useMe } from "@/features/auth/api/auth.queries";
 
 export function Navbar() {
+  const { data: user } = useMe();
+  const userName = user?.name ?? "Guest User";
+
   return (
 <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-6">
   <MobileDrawer />
@@ -16,7 +20,7 @@ export function Navbar() {
 
   {/* desktop left */}
   <div className="hidden md:block">
-    <ProfileSnapshot />
+    <ProfileSnapshot name={userName} role="Merchant" />
   </div>
 
   {/* desktop right */}
@@ -28,7 +32,7 @@ export function Navbar() {
 
   {/* mobile right */}
   <div className="flex items-center md:hidden">
-    <UserAvatar name="John Doe" className="size-8 cursor-pointer" />
+    <UserAvatar name={userName} className="size-8 cursor-pointer" />
   </div>
 </header>
 

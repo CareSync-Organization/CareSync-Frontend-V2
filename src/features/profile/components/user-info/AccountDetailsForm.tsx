@@ -9,17 +9,31 @@ import {
   userInfoSchema,
   type UserInfoValues,
 } from "../../schemas/userInfo.schema";
-import { toast } from "sonner";
+import type { User } from "@/features/auth/types/auth.types";
 
-export function AccountDetailsForm() {
+import { useUpdateMe } from "@/features/auth/api/auth.queries";
+
+export function AccountDetailsForm({ user }: { user?: User }) {
+  const updateMeMutation = useUpdateMe();
+  const [initialFirstName = "", ...rest] = (user?.name ?? "").split(" ");
+  const initialLastName = rest.join(" ");
+
   const form = useForm({
     defaultValues: {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@acme-ecommerce.com",
+      firstName: initialFirstName,
+      lastName: initialLastName,
+      email: user?.email ?? "",
     } satisfies UserInfoValues,
     onSubmit: async ({ value }) => {
-      console.log("Saving account details:", value);
+      const fullName = `${value.firstName} ${value.lastName}`.trim();
+      try {
+        await updateMeMutation.mutateAsync({
+          name: fullName,
+          email: value.email,
+        });
+      } catch (err) {
+        // Error toast is handled in mutation
+      }
     },
   });
 
@@ -103,10 +117,21 @@ export function AccountDetailsForm() {
           />
 
           <div className="flex justify-end gap-2 pt-2">
-            <ActionButton type="button" variant="outline">
+            <ActionButton
+              type="button"
+              variant="outline"
+              onClick={() => form.reset()}
+              disabled={updateMeMutation.isPending}
+            >
               Cancel
             </ActionButton>
-            <ActionButton type="submit" onClick={() => toast.success("Account details saved")}>Save</ActionButton>
+            <ActionButton
+              type="submit"
+              isLoading={updateMeMutation.isPending}
+              loadingText="Saving..."
+            >
+              Save
+            </ActionButton>
           </div>
         </form>
       </CardContent>

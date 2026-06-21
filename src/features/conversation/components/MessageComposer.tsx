@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SendHorizontal } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -6,18 +6,30 @@ import { ActionButton } from "@/components/shared/ActionButton";
 
 type MessageComposerProps = {
   onSend: (message: string) => void;
+  isSending?: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
-export function MessageComposer({ onSend }: MessageComposerProps) {
+export function MessageComposer({
+  onSend,
+  isSending = false,
+  disabled = false,
+  disabledReason = "Messaging is disabled.",
+}: MessageComposerProps) {
   const [message, setMessage] = useState("");
+  const isComposerDisabled = disabled || isSending;
+
+  useEffect(() => {
+    if (disabled) setMessage("");
+  }, [disabled]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const trimmedMessage = message.trim();
-    if (!trimmedMessage) return;
-
-    onSend(trimmedMessage);
+    if (isComposerDisabled) return;
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
     setMessage("");
   }
 
@@ -26,12 +38,14 @@ export function MessageComposer({ onSend }: MessageComposerProps) {
       <Input
         value={message}
         onChange={(event) => setMessage(event.target.value)}
-        placeholder="Type your message..."
+        placeholder={disabled ? disabledReason : "Type your message..."}
         className="h-11"
+        disabled={isComposerDisabled}
       />
-
       <ActionButton
         type="submit"
+        isLoading={isSending}
+        disabled={isComposerDisabled}
         endIcon={<SendHorizontal className="size-4" />}
       >
         Send

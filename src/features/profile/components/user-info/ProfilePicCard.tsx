@@ -4,9 +4,23 @@ import { Camera } from "lucide-react";
 import { ActionButton } from "@/components/shared/ActionButton";
 import { UserAvatar } from "@/components/shared/avatar/UserAvatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMe } from "@/features/auth/api/auth.queries";
+import { toast } from "sonner";
 
 export function ProfilePicCard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: user } = useMe();
+  const userName = user?.name ?? "Guest User";
+  const profilePic = user?.profilePic;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      toast.info(
+        "Image upload is currently pending backend API support (requires models.ImageField update).",
+      );
+    }
+  };
 
   return (
     <Card className="rounded-xl border bg-card shadow-sm">
@@ -14,7 +28,8 @@ export function ProfilePicCard() {
         <CardTitle>Profile Picture</CardTitle>
       </CardHeader>
       <CardContent className="flex items-center gap-6">
-        <UserAvatar name="John Doe" className="size-20 text-2xl" />
+        <UserAvatar name={userName} imageUrl={profilePic ?? undefined} className="size-20 text-2xl" />
+
         <div>
           <ActionButton
             type="button"
@@ -32,6 +47,7 @@ export function ProfilePicCard() {
             type="file"
             accept="image/jpeg,image/png,image/gif"
             className="hidden"
+            onChange={handleFileChange}
           />
         </div>
       </CardContent>

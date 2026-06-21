@@ -10,7 +10,7 @@ export function LandingFooter() {
           <CareSyncLogoBadge
             tone={"light"}
             size={44}
-            className="bg-primary dark:bg-[#282828]"
+            className="bg-[#35928f] dark:bg-[#282828]"
           />
           <p className="text-sm text-muted-foreground">
             CareSync centralizes ecommerce customer support.
