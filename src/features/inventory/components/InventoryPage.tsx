@@ -1,9 +1,12 @@
 import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, Package, Upload } from "lucide-react";
+import { Package } from "lucide-react";
+import { toast } from "sonner";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { useActiveStoreStore } from "@/lib/stores/active-store-store";
+import { useHasPermission } from "@/lib/hooks/useHasPermission";
+import { useStoreConnectors } from "@/features/connectors/api/connectors.queries";
 
 import {
   useCreateInventoryItem,
@@ -11,6 +14,7 @@ import {
   useInventoryItems,
   useInventorySummary,
   useUpdateInventoryItem,
+  useUpdateShopifyStock,
 } from "../api/inventory.queries";
 import type {
   InventoryItem,
@@ -21,6 +25,7 @@ import { InventoryDeleteDialog } from "./InventoryDeleteDialog";
 import { InventoryItemDialog } from "./InventoryItemDialog";
 import { InventorySummaryCards } from "./InventorySummaryCards";
 import { InventoryTable } from "./InventoryTable";
+import { UpdateStockDialog } from "./UpdateStockDialog";
 
 type DialogState = {
   mode: "create" | "edit";
@@ -29,6 +34,10 @@ type DialogState = {
 
 export function InventoryPage() {
   const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
+  const canWrite = useHasPermission("inventory", "write");
+  const canWriteConnectors = useHasPermission("connectors", "write");
+  const canUpdateStock = canWrite && canWriteConnectors;
+
   const {
     data: items = [],
     isLoading,
@@ -36,26 +45,38 @@ export function InventoryPage() {
     refetch,
   } = useInventoryItems(activeStoreId);
   const { data: summary } = useInventorySummary(activeStoreId);
+  const { data: connectors = [] } = useStoreConnectors(activeStoreId ?? undefined);
+  const shopifyConnector = connectors.find((c) => c.channel === "shopify" && c.status === "active") ?? null;
 
   const createInventoryItemMutation = useCreateInventoryItem(activeStoreId);
   const updateInventoryItemMutation = useUpdateInventoryItem(activeStoreId);
   const deleteInventoryItemMutation = useDeleteInventoryItem(activeStoreId);
+  const updateShopifyStockMutation = useUpdateShopifyStock(activeStoreId);
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
+  const [updateStockItem, setUpdateStockItem] = useState<InventoryItem | null>(null);
 
   const counts = summary ?? getMetricCounts(items);
 
+  function requireWrite(): boolean {
+    if (!canWrite) {
+      toast.error("You need write access to manage inventory.");
+      return false;
+    }
+    return true;
+  }
+
   const handleAddItem = useCallback(
-    () => setDialogState({ mode: "create", item: null }),
-    [],
+    () => { if (requireWrite()) setDialogState({ mode: "create", item: null }); },
+    [canWrite],
   );
   const handleEditItem = useCallback(
-    (item: InventoryItem) => setDialogState({ mode: "edit", item }),
-    [],
+    (item: InventoryItem) => { if (requireWrite()) setDialogState({ mode: "edit", item }); },
+    [canWrite],
   );
   const handleDeleteItem = useCallback(
-    (item: InventoryItem) => setDeleteItem(item),
-    [],
+    (item: InventoryItem) => { if (requireWrite()) setDeleteItem(item); },
+    [canWrite],
   );
 
   const isSaving =
@@ -71,24 +92,6 @@ export function InventoryPage() {
             Central inventory reference for channels without native inventory
             systems
           </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ActionButton
-            type="button"
-            variant="outline"
-            startIcon={<Download className="size-4" />}
-            disabled
-          >
-            Export
-          </ActionButton>
-          <ActionButton
-            type="button"
-            variant="outline"
-            startIcon={<Upload className="size-4" />}
-            disabled
-          >
-            Import CSV
-          </ActionButton>
         </div>
       </div>
 
@@ -111,10 +114,7 @@ export function InventoryPage() {
           description="Create or select a store from the top navigation before managing inventory."
         />
       ) : isLoading ? (
-        <InventoryStatePanel
-          title="Loading inventory"
-          description="Fetching manual inventory for the active store."
-        />
+        <InventorySkeleton />
       ) : isError ? (
         <InventoryStatePanel
           title="Could not load inventory"
@@ -138,6 +138,8 @@ export function InventoryPage() {
             onAddItem={handleAddItem}
             onEditItem={handleEditItem}
             onDeleteItem={handleDeleteItem}
+            canUpdateStock={canUpdateStock && Boolean(shopifyConnector)}
+            onUpdateStock={(item) => setUpdateStockItem(item)}
           />
         </>
       )}
@@ -184,7 +186,72 @@ export function InventoryPage() {
           setDeleteItem(null);
         }}
       />
+
+      <UpdateStockDialog
+        item={updateStockItem}
+        open={updateStockItem !== null}
+        isSaving={updateShopifyStockMutation.isPending}
+        onOpenChange={(open) => {
+          if (!open) setUpdateStockItem(null);
+        }}
+        onConfirm={(available) => {
+          if (!updateStockItem || !shopifyConnector) return;
+          updateShopifyStockMutation.mutate(
+            { connectorId: shopifyConnector.id, itemId: updateStockItem.id, available },
+            { onSuccess: () => setUpdateStockItem(null) },
+          );
+        }}
+      />
     </section>
+  );
+}
+
+function InventorySkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="rounded-xl border bg-card p-5 shadow-sm space-y-3">
+            <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+            <div className="h-8 w-12 rounded bg-muted animate-pulse" />
+          </div>
+        ))}
+      </div>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row">
+          <div className="grid gap-3 md:grid-cols-3 lg:flex-1">
+            <div className="h-11 rounded-xl bg-muted animate-pulse" />
+            <div className="h-11 rounded-xl bg-muted animate-pulse" />
+            <div className="h-11 rounded-xl bg-muted animate-pulse" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-11 w-24 rounded-xl bg-muted animate-pulse" />
+            <div className="h-11 w-28 rounded-xl bg-muted animate-pulse" />
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-xl bg-card shadow-sm">
+          <div className="flex gap-6 border-b px-4 py-3">
+            {[28, 36, 16, 24, 20, 28, 20].map((w, i) => (
+              <div key={i} className={`h-4 w-${w} rounded bg-muted animate-pulse`} />
+            ))}
+          </div>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-6 border-b px-4 py-3 last:border-b-0">
+              <div className="h-4 w-28 rounded bg-muted animate-pulse" />
+              <div className="h-4 w-36 rounded bg-muted animate-pulse" />
+              <div className="h-4 w-12 rounded bg-muted animate-pulse" />
+              <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
+              <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
+              <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+              <div className="flex gap-2">
+                <div className="size-8 rounded-lg bg-muted animate-pulse" />
+                <div className="size-8 rounded-lg bg-muted animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

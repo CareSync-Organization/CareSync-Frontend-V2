@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit2, Filter, Plus, Trash2 } from "lucide-react";
+import { Edit2, Filter, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { SearchInput } from "@/components/shared/SearchInput";
@@ -28,6 +28,8 @@ type InventoryTableProps = {
   onAddItem: () => void;
   onEditItem: (item: InventoryItem) => void;
   onDeleteItem: (item: InventoryItem) => void;
+  onUpdateStock?: (item: InventoryItem) => void;
+  canUpdateStock?: boolean;
 };
 
 export function InventoryTable({
@@ -35,6 +37,8 @@ export function InventoryTable({
   onAddItem,
   onEditItem,
   onDeleteItem,
+  onUpdateStock,
+  canUpdateStock = false,
 }: InventoryTableProps) {
   const columns = useMemo<ColumnDef<InventoryItem>[]>(
     () => [
@@ -44,7 +48,7 @@ export function InventoryTable({
           <DataTableColumnHeader column={column} title="Product Code / SKU" />
         ),
         cell: ({ row }) => (
-          <span className="font-medium">{row.original.sku}</span>
+          <span>{row.original.sku}</span>
         ),
       },
       {
@@ -53,7 +57,7 @@ export function InventoryTable({
           <DataTableColumnHeader column={column} title="Product Name" />
         ),
         cell: ({ row }) => (
-          <span className="block max-w-55 whitespace-normal font-medium">
+          <span className="block max-w-55 whitespace-normal">
             {row.original.name}
           </span>
         ),
@@ -121,6 +125,20 @@ export function InventoryTable({
           }
 
           if (row.original.isReadOnly) {
+            const isShopify = row.original.source === "shopify";
+            if (isShopify && canUpdateStock && onUpdateStock) {
+              return (
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label={`Update stock for ${row.original.name}`}
+                  onClick={() => onUpdateStock(row.original)}
+                >
+                  <RefreshCw className="size-3" />
+                  Update stock
+                </button>
+              );
+            }
             return (
               <span className="text-xs text-muted-foreground">Read-only</span>
             );
@@ -150,7 +168,7 @@ export function InventoryTable({
         },
       },
     ],
-    [onDeleteItem, onEditItem],
+    [onDeleteItem, onEditItem, onUpdateStock, canUpdateStock],
   );
 
   return (

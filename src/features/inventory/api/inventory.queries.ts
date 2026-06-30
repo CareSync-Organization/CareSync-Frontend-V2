@@ -8,6 +8,7 @@ import {
   getInventoryItems,
   getInventorySummary,
   updateInventoryItem,
+  updateShopifyStock,
 } from "./inventory.api";
 import {
   mapInventoryItemDto,
@@ -210,6 +211,46 @@ export function useUpdateInventoryItem(storeId: string | null) {
       }
 
       toast.success("Inventory item updated");
+    },
+  });
+}
+
+export function useUpdateShopifyStock(storeId: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      connectorId,
+      itemId,
+      available,
+    }: {
+      connectorId: string;
+      itemId: string;
+      available: number;
+    }) => {
+      if (!storeId) throw new Error("No active store selected.");
+      return updateShopifyStock(storeId, connectorId, itemId, available);
+    },
+    onSuccess: (response) => {
+      const updatedItem = mapInventoryItemDto(response.item);
+      if (storeId) {
+        queryClient.setQueryData<InventoryItem[]>(
+          queryKeys.inventory.list(storeId),
+          (oldItems = []) =>
+            oldItems.map((item) =>
+              item.id === updatedItem.id ? updatedItem : item,
+            ),
+        );
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.inventory.summary(storeId),
+        });
+      }
+      toast.success("Shopify stock updated successfully.");
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Could not update Shopify stock.",
+      );
     },
   });
 }
