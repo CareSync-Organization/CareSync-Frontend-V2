@@ -1,31 +1,28 @@
 import { useForm } from "@tanstack/react-form";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  MailEdit01Icon,
-  LockPasswordIcon,
-  UserIcon,
-} from "@hugeicons/core-free-icons";
+import { MailEdit01Icon, LockPasswordIcon, UserIcon } from "@hugeicons/core-free-icons";
 import { ActionButton } from "@/components/shared/ActionButton";
 import { TextInput } from "@/components/shared/forms/InputField";
 import { AuthDivider } from "@/features/auth/components/AuthDivider";
-import {
-  GoogleIcon,
-  MicrosoftIcon,
-} from "@/features/auth/components/SocialIcons";
-import {
-  signupSchema,
-  type SignUpFormValues,
-} from "@/features/auth/schemas/signup.schema";
+import { GoogleIcon } from "@/features/auth/components/SocialIcons";
+
+const GOOGLE_AUTH_URL = `${import.meta.env.VITE_API_BASE_URL}/auth/social/login/google-oauth2/`;
+import { signupSchema, type SignUpFormValues } from "@/features/auth/schemas/signup.schema";
 import { getFieldError } from "@/lib/get-field-error";
 import { CheckboxField } from "@/components/shared/forms/CheckboxField";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useSignup } from "../../api/auth.queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getApiFieldError } from "@/lib/api"
+import { getApiFieldError } from "@/lib/api";
 
-export function SignUpForm() {
-  const navigate = useNavigate()
-  const signupMutation = useSignup()
+type SignUpFormProps = {
+  redirectTo?: string;
+};
+
+export function SignUpForm({ redirectTo }: SignUpFormProps) {
+  const navigate = useNavigate();
+  const signupMutation = useSignup();
+
   const form = useForm({
     defaultValues: {
       fullName: "",
@@ -39,20 +36,20 @@ export function SignUpForm() {
         name: value.fullName,
         email: value.email,
         password: value.password,
-        passwordConfirm: value.confirmPassword
+        passwordConfirm: value.confirmPassword,
       });
-      navigate({to: "/dashboard"})
+      if (redirectTo) {
+        window.location.assign(redirectTo);
+      } else {
+        navigate({ to: "/dashboard" });
+      }
     },
   });
 
   const nameServerError = getApiFieldError(signupMutation.error, "name");
   const emailServerError = getApiFieldError(signupMutation.error, "email");
   const passwordServerError = getApiFieldError(signupMutation.error, "password");
-  const confirmPasswordServerError = getApiFieldError(
-    signupMutation.error,
-    "password_confirm",
-  );
-
+  const confirmPasswordServerError = getApiFieldError(signupMutation.error, "password_confirm");
 
   return (
     <form
@@ -72,10 +69,7 @@ export function SignUpForm() {
           </AlertDescription>
         </Alert>
       )}
-      <form.Field
-        name="fullName"
-        validators={{ onChange: signupSchema.shape.fullName }}
-      >
+      <form.Field name="fullName" validators={{ onChange: signupSchema.shape.fullName }}>
         {(field) => (
           <TextInput
             name={field.name}
@@ -85,14 +79,11 @@ export function SignUpForm() {
             value={field.state.value}
             error={getFieldError(field.state.meta.errors) ?? nameServerError}
             onBlur={field.handleBlur}
-            onChange={(event) => {signupMutation.reset(); field.handleChange(event.target.value)}}
+            onChange={(event) => { signupMutation.reset(); field.handleChange(event.target.value); }}
           />
         )}
       </form.Field>
-      <form.Field
-        name="email"
-        validators={{ onChange: signupSchema.shape.email }}
-      >
+      <form.Field name="email" validators={{ onChange: signupSchema.shape.email }}>
         {(field) => (
           <TextInput
             name={field.name}
@@ -102,16 +93,11 @@ export function SignUpForm() {
             value={field.state.value}
             error={getFieldError(field.state.meta.errors) ?? emailServerError}
             onBlur={field.handleBlur}
-            onChange={(event) => {signupMutation.reset(); field.handleChange(event.target.value)}}
+            onChange={(event) => { signupMutation.reset(); field.handleChange(event.target.value); }}
           />
         )}
       </form.Field>
-      <form.Field
-        name="password"
-        validators={{
-          onChange: signupSchema.shape.password,
-        }}
-      >
+      <form.Field name="password" validators={{ onChange: signupSchema.shape.password }}>
         {(field) => (
           <TextInput
             name={field.name}
@@ -123,10 +109,7 @@ export function SignUpForm() {
             error={getFieldError(field.state.meta.errors) ?? passwordServerError}
             startIcon={<HugeiconsIcon icon={LockPasswordIcon} />}
             onBlur={field.handleBlur}
-            onChange={(event) => {
-              signupMutation.reset();
-              field.handleChange(event.target.value);
-            }}
+            onChange={(event) => { signupMutation.reset(); field.handleChange(event.target.value); }}
           />
         )}
       </form.Field>
@@ -139,6 +122,7 @@ export function SignUpForm() {
             if (value !== password) return "Passwords do not match";
             return undefined;
           },
+          onChangeListenTo: ["password"],
         }}
       >
         {(field) => (
@@ -152,26 +136,16 @@ export function SignUpForm() {
             error={getFieldError(field.state.meta.errors) ?? confirmPasswordServerError}
             startIcon={<HugeiconsIcon icon={LockPasswordIcon} />}
             onBlur={field.handleBlur}
-            onChange={(event) => {
-              signupMutation.reset();
-              field.handleChange(event.target.value);
-            }}
+            onChange={(event) => { signupMutation.reset(); field.handleChange(event.target.value); }}
           />
         )}
       </form.Field>
-      <form.Field
-        name="acceptedTerms"
-        validators={{
-          onChange: signupSchema.shape.acceptedTerms,
-        }}
-      >
+      <form.Field name="acceptedTerms" validators={{ onChange: signupSchema.shape.acceptedTerms }}>
         {(field) => (
           <CheckboxField
             name={field.name}
             checked={field.state.value}
-            onCheckedChange={(checked) => {
-              field.handleChange(checked);
-            }}
+            onCheckedChange={(checked) => field.handleChange(checked)}
             onBlur={field.handleBlur}
             error={getFieldError(field.state.meta.errors)}
             label={
@@ -189,27 +163,27 @@ export function SignUpForm() {
           />
         )}
       </form.Field>
-      <ActionButton type="submit" isLoading={signupMutation.isPending} loadingText="Creating Account...">Create Account</ActionButton>
+      <ActionButton type="submit" isLoading={signupMutation.isPending} loadingText="Creating Account...">
+        Create Account
+      </ActionButton>
 
-      <AuthDivider children="or sign up with" />
+      <AuthDivider>or sign up with</AuthDivider>
 
       <ActionButton
         startIcon={<GoogleIcon className="size-4" />}
         type="button"
-        variant={"outline"}
+        variant="outline"
+        onClick={() => { window.location.href = GOOGLE_AUTH_URL; }}
       >
         Continue with Google
       </ActionButton>
-      <ActionButton
-        startIcon={<MicrosoftIcon className="size-4" />}
-        type="button"
-        variant={"outline"}
-      >
-        Continue with Microsoft 365
-      </ActionButton>
       <p className="text-center">
         Already have an Account?{" "}
-        <Link to="/login" className="font-semibold">
+        <Link
+          to="/login"
+          search={redirectTo ? { redirect: redirectTo } : {}}
+          className="font-semibold"
+        >
           Sign In
         </Link>
       </p>

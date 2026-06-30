@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
-import { getMe, logout, signin, signup, updateMe } from "./auth.api";
+import { getMe, logout, signin, signup, updateMe, forgotPassword, resetPassword, uploadAvatar, changePassword } from "./auth.api";
 import { mapUserDto } from "./auth.mapper";
 import { toast } from "sonner";
+import type { User } from "../types/auth.types";
 
 export function useMe() {
   return useQuery({
@@ -42,8 +43,8 @@ export function useLogout() {
 
     return useMutation({
         mutationFn: logout,
-        onSettled: () => {
-            queryClient.clear();
+        onSuccess: () => {
+            queryClient.clear(); // should be onSettled if I want the user to just logout instantly and redirect
         },
     });
 }
@@ -61,5 +62,39 @@ export function useUpdateMe() {
         onError: (error) => {
             toast.error(error instanceof Error ? error.message : "Failed to update profile");
         }
+    });
+}
+
+export function useForgotPassword() {
+    return useMutation({
+        mutationFn: forgotPassword,
+    });
+}
+
+export function useResetPassword() {
+    return useMutation({
+        mutationFn: resetPassword,
+    });
+}
+
+export function useUploadAvatar() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: uploadAvatar,
+        onSuccess: (data) => {
+            queryClient.setQueryData(queryKeys.auth.me(), (old: User | undefined) =>
+                old ? { ...old, profilePic: data.profile_pic } : old
+            );
+            toast.success("Profile picture updated");
+        },
+        onError: () => {
+            toast.error("Failed to upload avatar. Please try again.");
+        },
+    });
+}
+
+export function useChangePassword() {
+    return useMutation({
+        mutationFn: changePassword,
     });
 }
