@@ -99,6 +99,8 @@ export type ConversationDetailDTO = ConversationSummaryDTO & {
 
 // websocket evennts
 
+import type { TicketDto } from "@/features/tickets/types/ticket.types";
+
 export type WsEvent =
   | { event: "subscription.accepted"; scope: "store" | "conversation" }
   | { event: "subscription.rejected"; payload?: unknown }
@@ -106,4 +108,7 @@ export type WsEvent =
   | { event: "conversation.updated"; payload: ConversationSummaryDTO | { conversation_id: string; status: ConversationStatus } }
   | { event: "message.created"; payload: MessageDTO }
   | { event: "message.updated"; payload: MessageDTO }
-  | { event: "ai_run.updated"; payload: { ai_run_id: string; conversation_id: string; status: string } };
+  | { event: "ai_run.updated"; payload: { ai_run_id: string; conversation_id: string; status: string } }
+  | { event: "ticket.created"; payload: TicketDto }
+  | { event: "ticket.updated"; payload: TicketDto }
+  | { event: "analytics.changed"; payload: { store_id: string; resources: string[]; reason: string; occurred_at: string } };

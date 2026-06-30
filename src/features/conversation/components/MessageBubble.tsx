@@ -6,19 +6,36 @@ import type { Message } from "../types/conversation.types";
 type MessageBubbleProps = {
   message: Message;
   customerName: string;
+  currentUserId?: string;
+  currentUserName?: string;
 };
 
-const SENDER_DISPLAY: Record<string, string> = {
-  customer: "",        // filled in from customerName prop
-  agent: "Admin",
-  bot: "CareSync AI",
-  system: "System",
-};
+export function MessageBubble({ message, customerName, currentUserId, currentUserName }: MessageBubbleProps) {
+  if (message.senderType === "system") {
+    return (
+      <div className="flex items-center gap-3 py-1">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs text-muted-foreground">{message.content}</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+    );
+  }
 
-export function MessageBubble({ message, customerName }: MessageBubbleProps) {
-  const isOutgoing = message.senderType !== "customer" && message.senderType !== "system";
-  const senderName =
-    message.senderType === "customer" ? customerName : (SENDER_DISPLAY[message.senderType] ?? message.senderType);
+  const isOutgoing = message.senderType !== "customer";
+
+  function getSenderName(): string {
+    if (message.senderType === "customer") return customerName;
+    if (message.senderType === "bot") return "CareSync AI";
+    if (message.senderType === "agent") {
+      if (currentUserId && message.senderId === currentUserId) {
+        return currentUserName ?? "You";
+      }
+      return "Agent";
+    }
+    return message.senderType;
+  }
+
+  const senderName = getSenderName();
 
   return (
     <div className={cn("flex gap-2", isOutgoing && "justify-end")}>
@@ -31,12 +48,12 @@ export function MessageBubble({ message, customerName }: MessageBubbleProps) {
       <div
         className={cn(
           "max-w-[75%] rounded-xl px-3 py-2 text-sm shadow-sm",
-          isOutgoing ? "bg-primary/10 text-foreground" : "bg-muted text-foreground",
+          isOutgoing ? "bg-green-300 dark:bg-black/30 text-foreground" : "bg-muted text-foreground",
         )}
       >
         <p className="mb-1 text-xs font-medium text-muted-foreground">{senderName}</p>
 
-        <p>{message.content}</p>
+        <p className="text-black dark:text-white">{message.content}</p>
 
         <p className="mt-1 text-xs text-muted-foreground">
           {new Date(message.createdAt).toLocaleTimeString([], {

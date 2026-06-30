@@ -20,12 +20,14 @@ const filters: Array<{ label: string; value: FilterValue }> = [
 
 type ConversationListProps = {
   conversations: ConversationSummary[];
+  isLoading?: boolean;
   selectedConversationId: string;
   onSelectConversation: (conversation: ConversationSummary) => void;
 };
 
 export function ConversationList({
   conversations,
+  isLoading = false,
   selectedConversationId,
   onSelectConversation,
 }: ConversationListProps) {
@@ -71,7 +73,9 @@ export function ConversationList({
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        {filteredConversations.length === 0 ? (
+        {isLoading ? (
+          <ConversationListLoadingRows />
+        ) : filteredConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
             <MessageSquareDashed className="size-8 opacity-40" />
             <p className="text-sm font-medium">No conversations found</p>
@@ -89,5 +93,35 @@ export function ConversationList({
         )}
       </ScrollArea>
     </aside>
+  );
+}
+
+function ConversationListLoadingRows() {
+  return (
+    <div aria-hidden="true">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex h-28.25 w-full gap-3 border-b px-4 py-4"
+        >
+          <div className="size-10 shrink-0 animate-pulse rounded-full bg-muted" />
+
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                <div className="flex gap-1.5">
+                  <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
+                  <div className="h-5 w-12 animate-pulse rounded-full bg-muted" />
+                </div>
+              </div>
+              <div className="h-3 w-11 shrink-0 animate-pulse rounded bg-muted" />
+            </div>
+
+            <div className="h-4 w-full max-w-52 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
