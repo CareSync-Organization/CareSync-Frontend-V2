@@ -135,6 +135,7 @@ export function SupportPage() {
           type="button"
           variant="secondary"
           className="mt-4 bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/20"
+          onClick={() => { window.location.href = "mailto:junaidjaffery1@gmail.com"; }}
         >
           Contact Support
         </ActionButton>
