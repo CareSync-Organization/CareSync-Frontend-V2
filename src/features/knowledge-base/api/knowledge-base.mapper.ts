@@ -9,6 +9,7 @@ export function mapKnowledgeDocDto(dto: KnowledgeDocDTO): KnowledgeDocument {
         fileType: dto.file_extension.toUpperCase(),
         fileSizeKb: Math.max(1, Math.round(dto.file_size / 1024)),
         uploadedAt: dto.created_at,
-        fileUrl: dto.file_url
+        fileUrl: dto.file_url,
+        processingStatus: dto.processing_status,
     };
 }
