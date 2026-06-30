@@ -17,21 +17,24 @@ type NotificationCardProps = {
 const notificationConfig = {
   alert: {
     Icon: TriangleAlert,
-    containerClassName: "bg-red-500/20 border-red-500/50",
+    containerClassName: "bg-red-500/15 border-red-500/40",
     iconClassName: "text-red-500",
-    buttonClassName: "bg-red-500 hover:bg-red-500/40",
+    buttonClassName: "bg-red-500 hover:bg-red-600 text-white",
+    dismissClassName: "hover:bg-red-500/20",
   },
   info: {
     Icon: Info,
-    containerClassName: "bg-blue-500/10 border-blue-500/50",
+    containerClassName: "bg-blue-500/10 border-blue-500/40",
     iconClassName: "text-blue-500",
-    buttonClassName: "bg-blue-500 hover:bg-blue-500/40",
+    buttonClassName: "bg-blue-500 hover:bg-blue-600 text-white",
+    dismissClassName: "hover:bg-blue-500/20",
   },
   success: {
     Icon: ShieldCheck,
-    containerClassName: "bg-green-500/10 border-green-500/50",
+    containerClassName: "bg-green-500/10 border-green-500/40",
     iconClassName: "text-green-500",
-    buttonClassName: "bg-green-500 hover:bg-green-500/40",
+    buttonClassName: "bg-green-500 hover:bg-green-600 text-white",
+    dismissClassName: "hover:bg-green-500/20",
   },
 } satisfies Record<
   NotificationCardType,
@@ -40,6 +43,7 @@ const notificationConfig = {
     containerClassName: string;
     iconClassName: string;
     buttonClassName: string;
+    dismissClassName: string;
   }
 >;
 
@@ -50,7 +54,7 @@ export function NotificationCard({
   onClick,
   onDismiss,
 }: NotificationCardProps) {
-  const { Icon, containerClassName, iconClassName, buttonClassName } =
+  const { Icon, containerClassName, iconClassName, buttonClassName, dismissClassName } =
     notificationConfig[type];
 
   return (
@@ -81,7 +85,7 @@ export function NotificationCard({
             variant="ghost"
             size="icon"
             onClick={onDismiss}
-            className="size-8 shrink-0 opacity-70 hover:opacity-100"
+            className={cn("size-8 shrink-0 opacity-70 hover:opacity-100", dismissClassName)}
           >
             <X className="size-4" />
           </Button>

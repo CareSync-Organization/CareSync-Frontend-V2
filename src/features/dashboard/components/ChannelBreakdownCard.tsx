@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 import { type ChannelKey } from "@/features/dashboard/types/channel-keys"
 
 type ChannelBreakdownItem = {
-  channel: ChannelKey;
+  channel: string;
   label: string;
   count: number;
-  percentage: number;
+  percentage: number | null;
 };
 
 type ChannelBreakdownCardProps = {
@@ -25,8 +25,9 @@ export function ChannelBreakdownCard({
 
       <CardContent className="space-y-4">
         {channelRows.map((item) => {
-          const config = channelConfig[item.channel];
-          const Icon = config.icon;
+          const config = channelConfig[item.channel as ChannelKey];
+          const Icon = config?.icon;
+          const pct = item.percentage ?? 0;
 
           return (
             <div key={item.channel} className="space-y-1.5">
@@ -36,18 +37,18 @@ export function ChannelBreakdownCard({
                     className={cn(
                       "flex shrink-0 items-center justify-center",
                       "size-6",
-                      config.textClassName,
+                      config?.textClassName,
                     )}
                   >
-                    {typeof Icon === "string" ? (
+                    {Icon && typeof Icon === "string" ? (
                       <img
                         src={Icon}
                         alt=""
                         className="h-5 w-auto scale-125 object-contain"
                       />
-                    ) : (
+                    ) : Icon ? (
                       <Icon className="size-4" />
-                    )}
+                    ) : null}
                   </span>
 
                   <span className="truncate text-sm font-medium">
@@ -62,13 +63,13 @@ export function ChannelBreakdownCard({
 
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className={cn("h-full rounded-full", config.barClassName)}
-                  style={{ width: `${item.percentage}%` }}
+                  className={cn("h-full rounded-full", config?.barClassName)}
+                  style={{ width: `${pct}%` }}
                 />
               </div>
 
               <p className="text-xs text-muted-foreground">
-                {item.percentage}% of total
+                {item.percentage !== null ? `${item.percentage}% of total` : "—"}
               </p>
             </div>
           );

@@ -1,55 +1,115 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 
 import { ChannelBreakdownCard } from "./ChannelBreakdownCard";
 import { MetricCard } from "./MetricCard";
 import { NotificationCard } from "./NotificationCard";
 import { RecentActivityCard } from "./RecentActivityCard";
 import { RecentConvoTable } from "./RecentConvoTable";
-import { channelRows } from "../mocks/dashboard.mock";
+import { TicketDetailModal } from "@/features/tickets/components/TicketDetailModal";
+import { useTicket } from "@/features/tickets/api/tickets.queries";
+import type { Ticket } from "@/features/tickets/types/ticket.types";
+import { useActiveStoreStore } from "@/lib/stores/active-store-store";
+import { useDashboard } from "../api/dashboard.queries";
+import { useNotifications } from "@/features/notifications/api/notifications.queries";
+import type { NotificationType } from "@/features/notifications/types/notification.types";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type DashboardNotificationId =
-  | "shopify-error"
-  | "shopify-connecting"
-  | "shopify-connected";
+type BannerType = "alert" | "info" | "success";
 
-const dashboardNotifications: Array<{
-  id: DashboardNotificationId;
-  type: "alert" | "info" | "success";
-  message: string;
-  buttonText: string;
-}> = [
-  {
-    id: "shopify-error",
-    type: "alert",
-    message: "Shopify Integration Connection Failed",
-    buttonText: "Retry",
-  },
-  {
-    id: "shopify-connecting",
-    type: "info",
-    message: "Shopify Integration is connecting at the moment",
-    buttonText: "View Status",
-  },
-  {
-    id: "shopify-connected",
-    type: "success",
-    message: "Shopify Integration Connected",
-    buttonText: "View Integration",
-  },
-];
+const NOTIFICATION_BANNER_TYPE: Partial<Record<NotificationType, BannerType>> = {
+  connector_failed: "alert",
+  escalation: "alert",
+  action_request_pending: "alert",
+  inventory_sync_complete: "success",
+  knowledge_doc_processed: "success",
+  new_conversation: "info",
+  new_message: "info",
+  invitation_received: "info",
+};
+
+const NOTIFICATION_BUTTON_TEXT: Partial<Record<NotificationType, string>> = {
+  connector_failed: "View Connectors",
+  escalation: "View Conversation",
+  action_request_pending: "Review",
+  inventory_sync_complete: "View Inventory",
+  knowledge_doc_processed: "View Knowledge Base",
+  new_conversation: "View",
+  new_message: "View",
+  invitation_received: "View",
+};
+
+const NOTIFICATION_ROUTES: Partial<Record<NotificationType, string>> = {
+  connector_failed: "/connectors",
+  escalation: "/conversations",
+  action_request_pending: "/conversations",
+  inventory_sync_complete: "/inventory",
+  knowledge_doc_processed: "/kbase",
+  new_conversation: "/conversations",
+  new_message: "/conversations",
+  invitation_received: "/userpermissions",
+};
+
+function formatMetricValue(value: number | null, asPercent = false): string {
+  if (value === null) return "—";
+  if (asPercent) return `${value.toFixed(1)}%`;
+  return value.toLocaleString();
+}
 
 export function DashboardPage() {
-  const [dismissedIds, setDismissedIds] = useState<
-    Set<DashboardNotificationId>
-  >(new Set());
+  const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
 
-  const visibleNotifications = dashboardNotifications.filter(
-    (n) => !dismissedIds.has(n.id),
+  const navigate = useNavigate();
+  const { data: snapshot, isLoading: dashboardLoading } = useDashboard(activeStoreId);
+  const { data: notificationsData } = useNotifications({ unread: true });
+
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const search = useSearch({ from: "/_app/dashboard" });
+  const deepLinkTicketId = (search as Record<string, string>).ticket ?? null;
+  const { data: deepLinkedTicket } = useTicket(
+    deepLinkTicketId && !selectedTicket ? deepLinkTicketId : null,
   );
 
-  function dismiss(id: DashboardNotificationId) {
+  useEffect(() => {
+    if (deepLinkedTicket && !modalOpen) {
+      setSelectedTicket(deepLinkedTicket);
+      setModalOpen(true);
+    }
+  }, [deepLinkedTicket, modalOpen]);
+
+  const banners = useMemo(() => {
+    const notifications = notificationsData?.results ?? [];
+    return notifications
+      .filter((n) => NOTIFICATION_BANNER_TYPE[n.type] !== undefined)
+      .map((n) => ({
+        id: n.id,
+        type: NOTIFICATION_BANNER_TYPE[n.type]!,
+        message: n.title,
+        buttonText: NOTIFICATION_BUTTON_TEXT[n.type] ?? "View",
+        route: NOTIFICATION_ROUTES[n.type] ?? null,
+      }));
+  }, [notificationsData]);
+
+  const visibleBanners = banners.filter((b) => !dismissedIds.has(b.id));
+
+  function dismiss(id: string) {
     setDismissedIds((prev) => new Set([...prev, id]));
   }
+
+  function handleTicketClick(ticket: Ticket) {
+    setSelectedTicket(ticket);
+    setModalOpen(true);
+  }
+
+  function handleModalClose(open: boolean) {
+    setModalOpen(open);
+    if (!open) setSelectedTicket(null);
+  }
+
+  const m = snapshot?.metrics;
 
   return (
     <div className="space-y-6">
@@ -60,55 +120,82 @@ export function DashboardPage() {
         </p>
       </div>
 
-      {visibleNotifications.map((notification) => (
+      {visibleBanners.map((banner) => (
         <NotificationCard
-          key={notification.id}
-          type={notification.type}
-          message={notification.message}
-          buttonText={notification.buttonText}
-          onClick={() => {}}
-          onDismiss={() => dismiss(notification.id)}
+          key={banner.id}
+          type={banner.type}
+          message={banner.message}
+          buttonText={banner.buttonText}
+          onClick={() => { if (banner.route) void navigate({ to: banner.route }); }}
+          onDismiss={() => dismiss(banner.id)}
         />
       ))}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          type="convo"
-          label="Total Conversations"
-          value="2,847"
-          trend={12.5}
-        />
+        {dashboardLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="min-h-40 rounded-xl" />
+          ))
+        ) : (
+          <>
+            <MetricCard
+              type="convo"
+              label="Total Conversations"
+              value={formatMetricValue(m?.totalConversations.value ?? null)}
+              trend={m?.totalConversations.changePercent ?? null}
+              isImprovement={m?.totalConversations.isImprovement}
+            />
 
-        <MetricCard
-          type="ai-handled"
-          label="AI-Handled"
-          value="2,134"
-          helperText="75%"
-          trend={8.2}
-        />
+            <MetricCard
+              type="ai-handled"
+              label="AI-Handled"
+              value={formatMetricValue(m?.aiHandled.value ?? null)}
+              helperText={
+                m?.aiHandled.percentage !== null && m?.aiHandled.percentage !== undefined
+                  ? `${m.aiHandled.percentage.toFixed(1)}%`
+                  : undefined
+              }
+              trend={m?.aiHandled.changePercent ?? null}
+              isImprovement={m?.aiHandled.isImprovement}
+            />
 
-        <MetricCard
-          type="resolution-rate"
-          label="Resolution Rate"
-          value="94.2%"
-          trend={2.1}
-        />
+            <MetricCard
+              type="resolution-rate"
+              label="Resolution Rate"
+              value={formatMetricValue(m?.resolutionRate.value ?? null, true)}
+              trend={m?.resolutionRate.changePercent ?? null}
+              isImprovement={m?.resolutionRate.isImprovement}
+            />
 
-        <MetricCard
-          type="escalations"
-          label="Escalations"
-          value="127"
-          trend={-5.3}
-        />
+            <MetricCard
+              type="escalations"
+              label="Escalations"
+              value={formatMetricValue(m?.escalations.value ?? null)}
+              trend={m?.escalations.changePercent ?? null}
+              isImprovement={m?.escalations.isImprovement}
+            />
+          </>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <RecentActivityCard />
-        <ChannelBreakdownCard channelRows={channelRows} />
+        <RecentActivityCard onTicketClick={handleTicketClick} />
+        <ChannelBreakdownCard channelRows={snapshot?.channelBreakdown ?? []} />
       </div>
+
       <div>
-        <RecentConvoTable />
+        <RecentConvoTable
+          conversations={snapshot?.recentConversations ?? []}
+          storeId={activeStoreId ?? ""}
+          isLoading={dashboardLoading}
+        />
       </div>
+
+      <TicketDetailModal
+        ticket={selectedTicket}
+        open={modalOpen}
+        onOpenChange={handleModalClose}
+      />
     </div>
   );
 }
