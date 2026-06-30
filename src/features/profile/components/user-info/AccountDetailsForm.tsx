@@ -15,8 +15,10 @@ import { useUpdateMe } from "@/features/auth/api/auth.queries";
 
 export function AccountDetailsForm({ user }: { user?: User }) {
   const updateMeMutation = useUpdateMe();
-  const [initialFirstName = "", ...rest] = (user?.name ?? "").split(" ");
-  const initialLastName = rest.join(" ");
+  const name = user?.name ?? "";
+  const lastSpaceIdx = name.lastIndexOf(" ");
+  const initialFirstName = lastSpaceIdx >= 0 ? name.slice(0, lastSpaceIdx) : name;
+  const initialLastName = lastSpaceIdx >= 0 ? name.slice(lastSpaceIdx + 1) : "";
 
   const form = useForm({
     defaultValues: {
@@ -107,14 +109,6 @@ export function AccountDetailsForm({ user }: { user?: User }) {
               />
             )}
           </form.Field>
-
-          <TextInput
-            name="role"
-            label="Role"
-            value="Administrator"
-            disabled
-            className="cursor-not-allowed opacity-60"
-          />
 
           <div className="flex justify-end gap-2 pt-2">
             <ActionButton

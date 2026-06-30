@@ -1,18 +1,22 @@
 import { useForm } from "@tanstack/react-form";
 import { Info } from "lucide-react";
+import { toast } from "sonner";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { TextInput } from "@/components/shared/forms/InputField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getFieldError } from "@/lib/get-field-error";
+import { getApiFieldError } from "@/lib/api";
+import { useChangePassword } from "@/features/auth/api/auth.queries";
 
 import {
   securitySchema,
   type SecurityFormValues,
 } from "../../schemas/security.schema";
-import { toast } from "sonner";
 
 export function SecuritySettingsForm() {
+  const changePasswordMutation = useChangePassword();
+
   const form = useForm({
     defaultValues: {
       currentPassword: "",
@@ -20,7 +24,17 @@ export function SecuritySettingsForm() {
       confirmPassword: "",
     } satisfies SecurityFormValues,
     onSubmit: async ({ value }) => {
-      console.log("Updating password:", value);
+      try {
+        await changePasswordMutation.mutateAsync({
+          currentPassword: value.currentPassword,
+          newPassword: value.newPassword,
+          confirmPassword: value.confirmPassword,
+        });
+        toast.success("Password updated successfully");
+        form.reset();
+      } catch {
+        // field-level error displayed inline via getApiFieldError
+      }
     },
   });
 
@@ -52,9 +66,17 @@ export function SecuritySettingsForm() {
                 isPassword
                 placeholder="Enter current password"
                 value={field.state.value}
-                error={getFieldError(field.state.meta.errors)}
+                error={
+                  getFieldError(field.state.meta.errors) ??
+                  (changePasswordMutation.isError
+                    ? getApiFieldError(changePasswordMutation.error, "current_password") ?? undefined
+                    : undefined)
+                }
                 onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
+                onChange={(e) => {
+                  changePasswordMutation.reset();
+                  field.handleChange(e.target.value);
+                }}
               />
             )}
           </form.Field>
@@ -85,6 +107,7 @@ export function SecuritySettingsForm() {
                 if (value && value !== newPassword) return "Passwords don't match";
                 return undefined;
               },
+              onChangeListenTo: ["newPassword"],
             }}
           >
             {(field) => (
@@ -110,8 +133,14 @@ export function SecuritySettingsForm() {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <ActionButton type="submit" onClick={() => toast.success("Password updated")}>Update Password</ActionButton>
-            <ActionButton type="button" variant="outline">
+            <ActionButton
+              type="submit"
+              isLoading={changePasswordMutation.isPending}
+              loadingText="Updating..."
+            >
+              Update Password
+            </ActionButton>
+            <ActionButton type="button" variant="outline" onClick={() => form.reset()}>
               Cancel
             </ActionButton>
           </div>
