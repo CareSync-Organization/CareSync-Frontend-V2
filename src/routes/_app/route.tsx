@@ -20,30 +20,28 @@ import { useConversationSocket } from "@/features/conversation/hooks/useConversa
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context, location }) => {
+    const ME_STALE_MS = 5 * 60 * 1000;
+
     try {
-      await context.queryClient.ensureQueryData({
-        queryKey: queryKeys.auth.me(),
-        queryFn: async () => mapUserDto(await getMe()),
-      });
+      const activeStoreId = useActiveStoreStore.getState().activeStoreId;
+      await Promise.all([
+        context.queryClient.ensureQueryData({
+          queryKey: queryKeys.auth.me(),
+          queryFn: async () => mapUserDto(await getMe()),
+          staleTime: ME_STALE_MS,
+        }),
+        activeStoreId
+          ? context.queryClient.ensureQueryData({
+              queryKey: queryKeys.permissions.my(activeStoreId),
+              queryFn: () => getMyPermissions(activeStoreId),
+              staleTime: Infinity,
+            })
+          : Promise.resolve(),
+      ]);
     } catch (error) {
       throw redirect({
         to: "/login",
-        search: {
-          redirect: location.href,
-        },
-      });
-    }
-
-    // Ensure permissions are in cache before rendering to prevent sidebar flicker.
-    // staleTime: Infinity means: return cached data instantly on re-navigation;
-    // only fetch when there is NO cached data at all (first load).
-    // useMyPermissions (staleTime: 0) handles background freshness after that.
-    const activeStoreId = useActiveStoreStore.getState().activeStoreId;
-    if (activeStoreId) {
-      await context.queryClient.ensureQueryData({
-        queryKey: queryKeys.permissions.my(activeStoreId),
-        queryFn: () => getMyPermissions(activeStoreId),
-        staleTime: Infinity,
+        search: { redirect: location.href },
       });
     }
   },

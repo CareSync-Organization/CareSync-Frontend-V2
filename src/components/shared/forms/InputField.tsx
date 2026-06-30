@@ -28,6 +28,7 @@ export function TextInput({
 }: TextInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
+  const errorId = `${inputId}-error`;
   const isInvalid = Boolean(error);
   const [showPassword, setShowPassword] = useState(false);
   const inputType = isPassword
@@ -45,6 +46,7 @@ export function TextInput({
         <InputGroupInput
           id={inputId}
           aria-invalid={isInvalid}
+          aria-describedby={isInvalid ? errorId : undefined}
           {...props}
           type={inputType}
         />
@@ -64,7 +66,7 @@ export function TextInput({
           </InputGroupAddon>
         ) : null}
       </InputGroup>
-      {error ? <FieldError>{error}</FieldError> : null}
+      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
     </Field>
   );
 }

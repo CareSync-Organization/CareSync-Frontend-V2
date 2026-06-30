@@ -34,7 +34,11 @@ export function RequestIntegrationDialog({
       contactEmail: "",
     } satisfies RequestIntegrationFormValues,
     onSubmit: ({ value }) => {
-      console.log("request integration", value);
+      const subject = encodeURIComponent(`Integration Request: ${value.platformName}`);
+      const body = encodeURIComponent(
+        `Platform: ${value.platformName}\n\nUse case:\n${value.useCase}\n\nContact email: ${value.contactEmail}`,
+      );
+      window.location.href = `mailto:junaidjaffery1@gmail.com?subject=${subject}&body=${body}`;
       onOpenChange(false);
     },
   });
