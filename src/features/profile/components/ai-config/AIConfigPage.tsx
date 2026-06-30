@@ -9,7 +9,7 @@ import {
   useUpdateStoreAISettings,
 } from "../../api/queries/ai-config.queries";
 import { AIAutomationCard } from "./AIAutomationCard";
-import { ResponseTemplatesCard } from "./ResponseTemplatesCard";
+// import { ResponseTemplatesCard } from "./ResponseTemplatesCard";
 
 const defaultDraft = {
   autoReplyEnabled: true,
@@ -110,7 +110,7 @@ export function AIConfigPage() {
         }
       />
 
-      <ResponseTemplatesCard />
+      {/* <ResponseTemplatesCard /> */}
 
       <div className="flex justify-end">
         <ActionButton

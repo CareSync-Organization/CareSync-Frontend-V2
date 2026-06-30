@@ -5,6 +5,9 @@ import type {
   ShopifyConnectInput,
   ShopifyConnectResponse,
   ShopifyInventorySyncResponse,
+  DarazConnectInput,
+  DarazConnectResponse,
+  DarazTaskResponse,
 } from "../types/connectors.types";
 
 export function getStoreConnectors(storeId: string) {
@@ -54,5 +57,32 @@ export function syncShopifyInventory(storeId: string, connectorId: string) {
     {
       method: "POST",
     },
+  );
+}
+
+export function initiateDarazConnect(input: DarazConnectInput) {
+  return api<DarazConnectResponse>(
+    `/api/stores/${input.storeId}/connectors/daraz/oauth/start/`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        region: input.region,
+        platform: "web",
+      }),
+    },
+  );
+}
+
+export function syncDarazInventory(storeId: string, connectorId: string) {
+  return api<DarazTaskResponse>(
+    `/api/stores/${storeId}/connectors/${connectorId}/daraz/sync-inventory/`,
+    { method: "POST" },
+  );
+}
+
+export function pollDarazMessages(storeId: string, connectorId: string) {
+  return api<DarazTaskResponse>(
+    `/api/stores/${storeId}/connectors/${connectorId}/daraz/poll-messages/`,
+    { method: "POST" },
   );
 }

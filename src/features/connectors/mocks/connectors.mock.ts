@@ -30,16 +30,16 @@ export const connectors: Connector[] = [
   {
     channel: "facebook",
     description: "Handle Facebook page and Messenger customer messages.",
-    status: "available",
+    status: "coming-soon",
   },
   {
     channel: "instagram",
     description: "Respond to Instagram direct messages from one inbox.",
-    status: "available",
+    status: "coming-soon",
   },
   {
     channel: "email",
     description: "Connect your support email for customer support tickets.",
-    status: "available",
+    status: "coming-soon",
   },
 ];

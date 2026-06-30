@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { DeleteKnowledgeDocDialog } from "./KnowledgeBaseDeleteDialog";
 import { useActiveStoreStore } from "@/lib/stores/active-store-store";
+import { useHasPermission } from "@/lib/hooks/useHasPermission";
 
 type DialogState = {
   mode: "create" | "edit";
@@ -28,6 +29,7 @@ type DialogState = {
 
 export function KnowledgeBasePage() {
   const activeStoreId = useActiveStoreStore((state) => state.activeStoreId) ?? undefined;
+  const canWrite = useHasPermission("knowledgeBase", "write");
   const documentsQuery = useKnowledgeDocs(activeStoreId);
   const createKnowledgeDocMutation = useCreateKnowledgeDoc(activeStoreId);
   const updateKnowledgeDocMutation = useUpdateKnowledgeDoc(activeStoreId);
@@ -53,6 +55,14 @@ export function KnowledgeBasePage() {
         .includes(query),
     );
   }, [documents, search]);
+
+  function requireWrite(): boolean {
+    if (!canWrite) {
+      toast.error("You need write access to manage the knowledge base.");
+      return false;
+    }
+    return true;
+  }
 
   function handleSave(values: KnowledgeDocumentFormValues) {
     if (!activeStoreId) {
@@ -133,7 +143,7 @@ export function KnowledgeBasePage() {
             type="button"
             startIcon={<Plus className="size-4" />}
             className="w-fit"
-            onClick={() => setDialogState({ mode: "create", document: null })}
+            onClick={() => { if (requireWrite()) setDialogState({ mode: "create", document: null }); }}
           >
             Upload New
           </ActionButton>
@@ -149,10 +159,24 @@ export function KnowledgeBasePage() {
 
       <div className="space-y-3">
         {documentsQuery.isLoading ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-muted-foreground">
-            <FileText className="size-8 opacity-40" />
-            <p className="text-sm font-medium">Loading documents...</p>
-          </div>
+          <>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                <div className="size-11 shrink-0 rounded-lg bg-muted animate-pulse" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
+                    <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <div className="size-8 rounded-lg bg-muted animate-pulse" />
+                  <div className="size-8 rounded-lg bg-muted animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </>
         ) : documentsQuery.isError ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 py-16 text-destructive">
             <FileText className="size-8 opacity-40" />
@@ -172,10 +196,10 @@ export function KnowledgeBasePage() {
               key={document.id}
               document={document}
               onEdit={(document) => {
-                setDialogState({ mode: "edit", document });
+                if (requireWrite()) setDialogState({ mode: "edit", document });
               }}
               onDelete={(document) => {
-                setDeleteDialogDocument(document);
+                if (requireWrite()) setDeleteDialogDocument(document);
               }}
               onPreview={(document) => {
                 window.open(document.fileUrl, "_blank", "noopener,noreferrer");

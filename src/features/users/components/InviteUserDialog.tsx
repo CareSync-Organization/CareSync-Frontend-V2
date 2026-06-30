@@ -25,6 +25,7 @@ export type InviteUserDialogProps = {
   open: boolean;
   mode: "invite" | "edit";
   member: TeamMember | null;
+  isSubmitting?: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (values: InviteUserValues) => void;
 };
@@ -33,6 +34,7 @@ export function InviteUserDialog({
   open,
   mode,
   member,
+  isSubmitting,
   onOpenChange,
   onSave,
 }: InviteUserDialogProps) {
@@ -117,7 +119,11 @@ export function InviteUserDialog({
                 Cancel
               </ActionButton>
             </DialogClose>
-            <ActionButton type="submit">
+            <ActionButton
+              type="submit"
+              isLoading={isSubmitting}
+              loadingText={mode === "edit" ? "Saving..." : "Sending..."}
+            >
               {mode === "edit" ? "Save Changes" : "Send Invite"}
             </ActionButton>
           </DialogFooter>

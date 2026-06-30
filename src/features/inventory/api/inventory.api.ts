@@ -53,3 +53,20 @@ export function deleteInventoryItem(itemId: string) {
     method: "DELETE",
   });
 }
+
+export type UpdateShopifyStockResponse = {
+  result: { status: string; inventory_item_id: string; available: number };
+  item: InventoryItemDTO;
+};
+
+export function updateShopifyStock(
+  storeId: string,
+  connectorId: string,
+  itemId: string,
+  available: number,
+): Promise<UpdateShopifyStockResponse> {
+  return api<UpdateShopifyStockResponse>(
+    `/api/stores/${storeId}/connectors/${connectorId}/shopify/inventory/${itemId}/update-level/`,
+    { method: "POST", body: JSON.stringify({ available }) },
+  );
+}

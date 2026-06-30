@@ -79,6 +79,7 @@ async function parseResponseBody(response: Response) {
 }
 
 function getErrorMessage(data: ApiErrorData, status: number) {
+  if (status >= 500) return "Something went wrong on our end. Please try again.";
   if (data) {
     if (typeof data === "string") return data;
     if (typeof data === "object") {
@@ -92,7 +93,6 @@ function getErrorMessage(data: ApiErrorData, status: number) {
   if (status === 401) return "Your session has expired. Please sign in again.";
   if (status === 403) return "You don't have permission to perform this action.";
   if (status === 404) return "The requested resource was not found.";
-  if (status >= 500) return "Something went wrong on our end. Please try again.";
   return "Something went wrong. Please try again.";
 }
 

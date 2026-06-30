@@ -40,9 +40,35 @@ export type ShopifyConnectorMetadata = {
   };
 };
 
+export type DarazRegion = "pk" | "bd" | "lk" | "np" | "mm";
+
+export type DarazConnectorMetadata = {
+  region?: DarazRegion;
+  regionName?: string;
+  sellerId?: string;
+  shortCode?: string;
+  accountId?: string;
+  accessTokenExpiresAt?: string;
+  refreshTokenExpiresAt?: string;
+  connectedAt?: string;
+  lastInventorySync?: {
+    created?: number;
+    updated?: number;
+    skipped?: number;
+    conflicts?: number;
+    syncedAt?: string;
+  };
+  lastImPoll?: {
+    sessions?: number;
+    messagesCreated?: number;
+    polledAt?: string;
+  };
+};
+
 export type ConnectorMetadata =
   | WhatsAppConnectorMetadata
   | ShopifyConnectorMetadata
+  | DarazConnectorMetadata
   | Record<string, unknown>;
 
 export type ConnectorRecord = {
@@ -81,6 +107,20 @@ export type ShopifyConnectResponse = {
 };
 
 export type ShopifyInventorySyncResponse = {
+  status: "queued";
+  task_id: string;
+};
+
+export type DarazConnectInput = {
+  storeId: string;
+  region: DarazRegion;
+};
+
+export type DarazConnectResponse = {
+  auth_url: string;
+};
+
+export type DarazTaskResponse = {
   status: "queued";
   task_id: string;
 };

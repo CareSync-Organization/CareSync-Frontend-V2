@@ -11,8 +11,9 @@ type AnalyticsMetricsCardProps = {
 
 export function AnalyticsMetricsCard({ metric }: AnalyticsMetricsCardProps) {
   const Icon = metric.icon;
-  const TrendIcon = metric.trend < 0 ? ArrowDownRight : ArrowUpRight;
-  const isPositive = metric.trend >= 0;
+  const trend = metric.trend;
+  const good = metric.isImprovement ?? (trend !== null && trend >= 0);
+  const TrendIcon = trend !== null && trend >= 0 ? ArrowUpRight : ArrowDownRight;
 
   return (
     <Card className="rounded-xl border bg-card shadow-sm">
@@ -26,18 +27,22 @@ export function AnalyticsMetricsCard({ metric }: AnalyticsMetricsCardProps) {
           >
             <Icon className={cn("size-5", metric.iconClassName)} />
           </span>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 text-sm font-medium",
-              isPositive ? "text-emerald-500" : "text-red-500",
-            )}
-          >
-            <TrendIcon className="size-4" />
-            {metric.trendLabel}
-          </span>
+          {trend !== null ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-sm font-medium",
+                good ? "text-emerald-500" : "text-red-500",
+              )}
+            >
+              <TrendIcon className="size-4" />
+              {trend >= 0 ? "+" : ""}{trend}%
+            </span>
+          ) : (
+            <span className="inline-flex items-center text-sm font-medium text-muted-foreground">—</span>
+          )}
         </div>
-        <p className="mt-5 text-sm text-muted-foreground">{metric.label}</p>
-        <p className="mt-3 text-2xl font-semibold tracking-normal">
+        <p className="mt-5 text-sm text-black dark:text-muted-foreground">{metric.label}</p>
+        <p className="mt-3 text-2xl font-semibold tracking-normal text-black dark:text-muted-foreground">
           {metric.value}
         </p>
       </CardContent>

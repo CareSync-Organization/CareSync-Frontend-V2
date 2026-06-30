@@ -6,18 +6,22 @@ import { Link } from "@tanstack/react-router";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { TextInput } from "@/components/shared/forms/InputField";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   forgotPassSchema,
   type ForgotPassFormValues,
 } from "@/features/auth/schemas/forgotpass.schema";
 import { getFieldError } from "@/lib/get-field-error";
+import { useForgotPassword } from "@/features/auth/api/auth.queries";
 
 export function ForgotPassForm() {
   const [submitted, setSubmitted] = useState(false);
+  const forgotPasswordMutation = useForgotPassword();
 
   const form = useForm({
     defaultValues: { email: "" } satisfies ForgotPassFormValues,
-    onSubmit: async () => {
+    onSubmit: async ({ value }) => {
+      await forgotPasswordMutation.mutateAsync(value.email);
       setSubmitted(true);
     },
   });
@@ -50,6 +54,15 @@ export function ForgotPassForm() {
         form.handleSubmit();
       }}
     >
+      {forgotPasswordMutation.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {forgotPasswordMutation.error instanceof Error
+              ? forgotPasswordMutation.error.message
+              : "Something went wrong. Please try again."}
+          </AlertDescription>
+        </Alert>
+      )}
       <form.Field
         name="email"
         validators={{ onChange: forgotPassSchema.shape.email }}
@@ -64,11 +77,20 @@ export function ForgotPassForm() {
             error={getFieldError(field.state.meta.errors)}
             startIcon={<HugeiconsIcon icon={MailEdit01Icon} size={16} />}
             onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
+            onChange={(event) => {
+              forgotPasswordMutation.reset();
+              field.handleChange(event.target.value);
+            }}
           />
         )}
       </form.Field>
-      <ActionButton type="submit">Send Reset Link</ActionButton>
+      <ActionButton
+        type="submit"
+        isLoading={forgotPasswordMutation.isPending}
+        loadingText="Sending..."
+      >
+        Send Reset Link
+      </ActionButton>
       <p className="text-center text-sm">
         Remember your password?{" "}
         <Link to="/login" className="font-semibold">

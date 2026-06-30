@@ -15,7 +15,7 @@ export function ProfileSnapshot({
 }: ProfileSnapshotProps) {
   return (
     <Link
-      to="/profile"
+      to="/profile/userinfo"
       className="flex items-center gap-3 no-underline hover:no-underline"
     >
       <UserAvatar name={name} imageUrl={imageUrl} className="size-11" />

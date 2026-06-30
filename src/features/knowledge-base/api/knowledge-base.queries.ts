@@ -48,6 +48,7 @@ export function useCreateKnowledgeDoc(storeId: string | undefined) {
                 fileSizeKb: Math.max(1, Math.round(input.file.size / 1024)),
                 uploadedAt: new Date().toISOString(),
                 fileUrl: "",
+                processingStatus: "queued",
                 isOptimistic: true,
             };
 
@@ -76,6 +77,8 @@ export function useCreateKnowledgeDoc(storeId: string | undefined) {
                         ...oldDocs.filter((doc) => doc.id !== context?.optimisticDocId),
                     ],
                 );
+                // Processing is async — invalidate so a background re-fetch picks up the terminal status
+                void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeBase.list(storeId) });
             }
             toast.success("Document uploaded");
         },

@@ -468,17 +468,21 @@ export function CareSyncLogoBadge({
   size = 56,
   tone = "brand",
   motion = "subtle",
+  noBg = false,
   ...props
-}: CareSyncLogoIconProps) {
+}: CareSyncLogoIconProps & { noBg?: boolean }) {
   const palette = palettes[tone];
 
   return (
     <div
       className={cn(
-        "grid place-items-center rounded-2xl shadow-lg ring-1 backdrop-blur",
-        tone === "brand"
-          ? "bg-white shadow-cyan-950/10 ring-black/5"
-          : "bg-white/12 shadow-cyan-950/10 ring-white/20",
+        "grid place-items-center rounded-2xl",
+        !noBg && [
+          "shadow-lg ring-1 backdrop-blur",
+          tone === "brand"
+            ? "bg-white shadow-cyan-950/10 ring-black/5"
+            : "bg-white/12 shadow-cyan-950/10 ring-white/20",
+        ],
         className,
       )}
       style={{ width: size, height: size, color: palette.text }}

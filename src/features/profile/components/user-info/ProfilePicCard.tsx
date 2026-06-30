@@ -4,22 +4,20 @@ import { Camera } from "lucide-react";
 import { ActionButton } from "@/components/shared/ActionButton";
 import { UserAvatar } from "@/components/shared/avatar/UserAvatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMe } from "@/features/auth/api/auth.queries";
-import { toast } from "sonner";
+import { useMe, useUploadAvatar } from "@/features/auth/api/auth.queries";
 
 export function ProfilePicCard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: user } = useMe();
+  const uploadAvatarMutation = useUploadAvatar();
   const userName = user?.name ?? "Guest User";
   const profilePic = user?.profilePic;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      toast.info(
-        "Image upload is currently pending backend API support (requires models.ImageField update).",
-      );
-    }
+    if (!file) return;
+    uploadAvatarMutation.mutate(file);
+    e.target.value = "";
   };
 
   return (
@@ -35,6 +33,8 @@ export function ProfilePicCard() {
             type="button"
             variant="outline"
             startIcon={<Camera className="size-4" />}
+            isLoading={uploadAvatarMutation.isPending}
+            loadingText="Uploading..."
             onClick={() => fileInputRef.current?.click()}
           >
             Upload New Photo

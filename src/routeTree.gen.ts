@@ -11,10 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InviteAcceptRouteImport } from './routes/invite/accept'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthForgetPasswordRouteImport } from './routes/_auth/forget-password'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppTicketsTicketIdRouteImport } from './routes/_app/tickets.$ticketId'
 import { Route as AppTabsKbaseRouteImport } from './routes/_app/_tabs/kbase'
 import { Route as AppTabsInventoryRouteImport } from './routes/_app/_tabs/inventory'
 import { Route as AppTabsConversationsRouteImport } from './routes/_app/_tabs/conversations'
@@ -23,6 +26,7 @@ import { Route as AppTabsAnalyticsRouteImport } from './routes/_app/_tabs/analyt
 import { Route as AppSettingsUserpermissionsRouteImport } from './routes/_app/_settings/userpermissions'
 import { Route as AppSettingsSupportRouteImport } from './routes/_app/_settings/support'
 import { Route as AppSettingsProfileRouteRouteImport } from './routes/_app/_settings/profile/route'
+import { Route as AppSettingsProfileIndexRouteImport } from './routes/_app/_settings/profile/index'
 import { Route as AppSettingsProfileUserinfoRouteImport } from './routes/_app/_settings/profile/userinfo'
 import { Route as AppSettingsProfilePrivacyRouteImport } from './routes/_app/_settings/profile/privacy'
 import { Route as AppSettingsProfileBusinessinfoRouteImport } from './routes/_app/_settings/profile/businessinfo'
@@ -36,6 +40,16 @@ const AppRouteRoute = AppRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteAcceptRoute = InviteAcceptRouteImport.update({
+  id: '/invite/accept',
+  path: '/invite/accept',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupRoute = AuthSignupRouteImport.update({
@@ -56,6 +70,11 @@ const AuthForgetPasswordRoute = AuthForgetPasswordRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppTicketsTicketIdRoute = AppTicketsTicketIdRouteImport.update({
+  id: '/tickets/$ticketId',
+  path: '/tickets/$ticketId',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppTabsKbaseRoute = AppTabsKbaseRouteImport.update({
@@ -99,6 +118,11 @@ const AppSettingsProfileRouteRoute = AppSettingsProfileRouteRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppSettingsProfileIndexRoute = AppSettingsProfileIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsProfileRouteRoute,
+} as any)
 const AppSettingsProfileUserinfoRoute =
   AppSettingsProfileUserinfoRouteImport.update({
     id: '/userinfo',
@@ -136,6 +160,8 @@ export interface FileRoutesByFullPath {
   '/forget-password': typeof AuthForgetPasswordRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/invite/accept': typeof InviteAcceptRoute
   '/profile': typeof AppSettingsProfileRouteRouteWithChildren
   '/support': typeof AppSettingsSupportRoute
   '/userpermissions': typeof AppSettingsUserpermissionsRoute
@@ -144,11 +170,13 @@ export interface FileRoutesByFullPath {
   '/conversations': typeof AppTabsConversationsRoute
   '/inventory': typeof AppTabsInventoryRoute
   '/kbase': typeof AppTabsKbaseRoute
+  '/tickets/$ticketId': typeof AppTicketsTicketIdRoute
   '/profile/aiconfig': typeof AppSettingsProfileAiconfigRoute
   '/profile/billing': typeof AppSettingsProfileBillingRoute
   '/profile/businessinfo': typeof AppSettingsProfileBusinessinfoRoute
   '/profile/privacy': typeof AppSettingsProfilePrivacyRoute
   '/profile/userinfo': typeof AppSettingsProfileUserinfoRoute
+  '/profile/': typeof AppSettingsProfileIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -156,7 +184,8 @@ export interface FileRoutesByTo {
   '/forget-password': typeof AuthForgetPasswordRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
-  '/profile': typeof AppSettingsProfileRouteRouteWithChildren
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/invite/accept': typeof InviteAcceptRoute
   '/support': typeof AppSettingsSupportRoute
   '/userpermissions': typeof AppSettingsUserpermissionsRoute
   '/analytics': typeof AppTabsAnalyticsRoute
@@ -164,11 +193,13 @@ export interface FileRoutesByTo {
   '/conversations': typeof AppTabsConversationsRoute
   '/inventory': typeof AppTabsInventoryRoute
   '/kbase': typeof AppTabsKbaseRoute
+  '/tickets/$ticketId': typeof AppTicketsTicketIdRoute
   '/profile/aiconfig': typeof AppSettingsProfileAiconfigRoute
   '/profile/billing': typeof AppSettingsProfileBillingRoute
   '/profile/businessinfo': typeof AppSettingsProfileBusinessinfoRoute
   '/profile/privacy': typeof AppSettingsProfilePrivacyRoute
   '/profile/userinfo': typeof AppSettingsProfileUserinfoRoute
+  '/profile': typeof AppSettingsProfileIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -178,6 +209,8 @@ export interface FileRoutesById {
   '/_auth/forget-password': typeof AuthForgetPasswordRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/invite/accept': typeof InviteAcceptRoute
   '/_app/_settings/profile': typeof AppSettingsProfileRouteRouteWithChildren
   '/_app/_settings/support': typeof AppSettingsSupportRoute
   '/_app/_settings/userpermissions': typeof AppSettingsUserpermissionsRoute
@@ -186,11 +219,13 @@ export interface FileRoutesById {
   '/_app/_tabs/conversations': typeof AppTabsConversationsRoute
   '/_app/_tabs/inventory': typeof AppTabsInventoryRoute
   '/_app/_tabs/kbase': typeof AppTabsKbaseRoute
+  '/_app/tickets/$ticketId': typeof AppTicketsTicketIdRoute
   '/_app/_settings/profile/aiconfig': typeof AppSettingsProfileAiconfigRoute
   '/_app/_settings/profile/billing': typeof AppSettingsProfileBillingRoute
   '/_app/_settings/profile/businessinfo': typeof AppSettingsProfileBusinessinfoRoute
   '/_app/_settings/profile/privacy': typeof AppSettingsProfilePrivacyRoute
   '/_app/_settings/profile/userinfo': typeof AppSettingsProfileUserinfoRoute
+  '/_app/_settings/profile/': typeof AppSettingsProfileIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -200,6 +235,8 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/signup'
+    | '/auth/reset-password'
+    | '/invite/accept'
     | '/profile'
     | '/support'
     | '/userpermissions'
@@ -208,11 +245,13 @@ export interface FileRouteTypes {
     | '/conversations'
     | '/inventory'
     | '/kbase'
+    | '/tickets/$ticketId'
     | '/profile/aiconfig'
     | '/profile/billing'
     | '/profile/businessinfo'
     | '/profile/privacy'
     | '/profile/userinfo'
+    | '/profile/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -220,7 +259,8 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/signup'
-    | '/profile'
+    | '/auth/reset-password'
+    | '/invite/accept'
     | '/support'
     | '/userpermissions'
     | '/analytics'
@@ -228,11 +268,13 @@ export interface FileRouteTypes {
     | '/conversations'
     | '/inventory'
     | '/kbase'
+    | '/tickets/$ticketId'
     | '/profile/aiconfig'
     | '/profile/billing'
     | '/profile/businessinfo'
     | '/profile/privacy'
     | '/profile/userinfo'
+    | '/profile'
   id:
     | '__root__'
     | '/'
@@ -241,6 +283,8 @@ export interface FileRouteTypes {
     | '/_auth/forget-password'
     | '/_auth/login'
     | '/_auth/signup'
+    | '/auth/reset-password'
+    | '/invite/accept'
     | '/_app/_settings/profile'
     | '/_app/_settings/support'
     | '/_app/_settings/userpermissions'
@@ -249,11 +293,13 @@ export interface FileRouteTypes {
     | '/_app/_tabs/conversations'
     | '/_app/_tabs/inventory'
     | '/_app/_tabs/kbase'
+    | '/_app/tickets/$ticketId'
     | '/_app/_settings/profile/aiconfig'
     | '/_app/_settings/profile/billing'
     | '/_app/_settings/profile/businessinfo'
     | '/_app/_settings/profile/privacy'
     | '/_app/_settings/profile/userinfo'
+    | '/_app/_settings/profile/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -262,6 +308,8 @@ export interface RootRouteChildren {
   AuthForgetPasswordRoute: typeof AuthForgetPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  InviteAcceptRoute: typeof InviteAcceptRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -278,6 +326,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/accept': {
+      id: '/invite/accept'
+      path: '/invite/accept'
+      fullPath: '/invite/accept'
+      preLoaderRoute: typeof InviteAcceptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/signup': {
@@ -306,6 +368,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/tickets/$ticketId': {
+      id: '/_app/tickets/$ticketId'
+      path: '/tickets/$ticketId'
+      fullPath: '/tickets/$ticketId'
+      preLoaderRoute: typeof AppTicketsTicketIdRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/_tabs/kbase': {
@@ -364,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsProfileRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/_settings/profile/': {
+      id: '/_app/_settings/profile/'
+      path: '/'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof AppSettingsProfileIndexRouteImport
+      parentRoute: typeof AppSettingsProfileRouteRoute
+    }
     '/_app/_settings/profile/userinfo': {
       id: '/_app/_settings/profile/userinfo'
       path: '/userinfo'
@@ -408,6 +484,7 @@ interface AppSettingsProfileRouteRouteChildren {
   AppSettingsProfileBusinessinfoRoute: typeof AppSettingsProfileBusinessinfoRoute
   AppSettingsProfilePrivacyRoute: typeof AppSettingsProfilePrivacyRoute
   AppSettingsProfileUserinfoRoute: typeof AppSettingsProfileUserinfoRoute
+  AppSettingsProfileIndexRoute: typeof AppSettingsProfileIndexRoute
 }
 
 const AppSettingsProfileRouteRouteChildren: AppSettingsProfileRouteRouteChildren =
@@ -417,6 +494,7 @@ const AppSettingsProfileRouteRouteChildren: AppSettingsProfileRouteRouteChildren
     AppSettingsProfileBusinessinfoRoute: AppSettingsProfileBusinessinfoRoute,
     AppSettingsProfilePrivacyRoute: AppSettingsProfilePrivacyRoute,
     AppSettingsProfileUserinfoRoute: AppSettingsProfileUserinfoRoute,
+    AppSettingsProfileIndexRoute: AppSettingsProfileIndexRoute,
   }
 
 const AppSettingsProfileRouteRouteWithChildren =
@@ -434,6 +512,7 @@ interface AppRouteRouteChildren {
   AppTabsConversationsRoute: typeof AppTabsConversationsRoute
   AppTabsInventoryRoute: typeof AppTabsInventoryRoute
   AppTabsKbaseRoute: typeof AppTabsKbaseRoute
+  AppTicketsTicketIdRoute: typeof AppTicketsTicketIdRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -446,6 +525,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppTabsConversationsRoute: AppTabsConversationsRoute,
   AppTabsInventoryRoute: AppTabsInventoryRoute,
   AppTabsKbaseRoute: AppTabsKbaseRoute,
+  AppTicketsTicketIdRoute: AppTicketsTicketIdRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
@@ -458,6 +538,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthForgetPasswordRoute: AuthForgetPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+  InviteAcceptRoute: InviteAcceptRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

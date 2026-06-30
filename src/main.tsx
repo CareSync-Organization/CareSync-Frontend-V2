@@ -48,7 +48,7 @@ createRoot(document.getElementById("root")!).render(
     <RouterProvider router={router} /> 
     {/* <TanStackRouterDevtools position="top-left" router={router} initialIsOpen={false}/> */}
     <Toaster richColors position="top-center"/>
-    <ReactQueryDevtools />
+    {/* <ReactQueryDevtools /> */}
     </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,

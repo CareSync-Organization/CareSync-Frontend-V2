@@ -21,7 +21,8 @@ type MetricCardProps = {
   label: string;
   value: string;
   helperText?: string;
-  trend: number;
+  trend: number | null;
+  isImprovement?: boolean | null;
   className?: string;
 };
 
@@ -56,12 +57,15 @@ export function MetricCard({
   value,
   helperText,
   trend,
+  isImprovement,
   className,
 }: MetricCardProps) {
   const config = metricConfig[type];
   const Icon = config.icon;
-  const isPositive = trend >= 0;
-  const TrendIcon = isPositive ? TrendingUp : TrendingDown;
+  // isImprovement from backend is the authoritative signal (lower escalations = green)
+  // fall back to trend sign only when backend hasn't provided it
+  const good = isImprovement ?? (trend !== null && trend >= 0);
+  const TrendIcon = (trend !== null && trend >= 0) ? TrendingUp : TrendingDown;
 
   return (
     <Card
@@ -81,18 +85,24 @@ export function MetricCard({
             <Icon className="size-6" />
           </div>
 
-          <div
-            className={cn(
-              "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold",
-              isPositive
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                : "bg-red-500/10 text-red-700 dark:text-red-400",
-            )}
-          >
-            <TrendIcon className="size-4" />
-            {isPositive ? "+" : ""}
-            {trend}%
-          </div>
+          {trend !== null ? (
+            <div
+              className={cn(
+                "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold",
+                good
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "bg-red-500/10 text-red-700 dark:text-red-400",
+              )}
+            >
+              <TrendIcon className="size-4" />
+              {trend >= 0 ? "+" : ""}
+              {trend}%
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold bg-muted text-muted-foreground">
+              —
+            </div>
+          )}
         </div>
 
         <div>

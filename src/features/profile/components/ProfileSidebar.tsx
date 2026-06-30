@@ -1,6 +1,6 @@
 import { SidebarTile } from "@/components/shared/navigation/sidebar/SidebarTile";
 import {
-  Building01Icon,
+  // Building01Icon,
   UserIcon,
   Robot01Icon,
   LockIcon,
@@ -11,14 +11,14 @@ import { HugeiconsIcon } from "@hugeicons/react";
 export function ProfileSidebar() {
   return (
     <div className="flex flex-col gap-4 w-54">
-      <SidebarTile
+      {/* <SidebarTile
         styles="bg-gray-500 text-white"
         inactivePropsStyles="hover:bg-primary"
         activePropsStyles="bg-primary -translate-y-1 shadow-lg"
         tileText="Business Info"
         tileLink="/profile/businessinfo"
         icon={<HugeiconsIcon icon={Building01Icon} size={18} />}
-      />
+      /> */}
       <SidebarTile
         styles="bg-gray-500 text-white"
         inactivePropsStyles="hover:bg-primary"

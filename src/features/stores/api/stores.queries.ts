@@ -15,7 +15,7 @@ export function useStores() {
       const dtos = await getStores();
       return dtos.map(mapStoreDto);
     },
-    staleTime: Infinity
+    staleTime: 1000 * 60 * 5
   });
 }
 

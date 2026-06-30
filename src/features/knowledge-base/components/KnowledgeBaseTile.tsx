@@ -1,10 +1,43 @@
-import { Edit2, FileText, Loader2, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Edit2, FileText, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 
-import type { KnowledgeDocument } from "../types/knowledge-base.types";
+import type { KnowledgeDocument, KnowledgeDocumentProcessingStatus } from "../types/knowledge-base.types";
 import { formatDate, formatDocumentType } from "../utils/knowledge-base.utils";
+
+function ProcessingStatusBadge({ status }: { status: KnowledgeDocumentProcessingStatus }) {
+  if (status === "processed") {
+    return (
+      <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 className="size-3" />
+        Indexed
+      </span>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <span className="flex items-center gap-1 text-xs text-destructive">
+        <AlertCircle className="size-3" />
+        Failed
+      </span>
+    );
+  }
+  if (status === "processing") {
+    return (
+      <span className="flex items-center gap-1 text-xs text-amber-500">
+        <Loader2 className="size-3 animate-spin" />
+        Processing
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <Clock className="size-3" />
+      Queued
+    </span>
+  );
+}
 
 type KnowledgeBaseTileProps = {
   document: KnowledgeDocument;
@@ -20,6 +53,8 @@ export function KnowledgeBaseTile({
   onPreview,
 }: KnowledgeBaseTileProps) {
   const isOptimistic = Boolean(document.isOptimistic);
+  const isFailed = document.processingStatus === "failed";
+  const isReady = document.processingStatus === "processed";
 
   function handlePreview() {
     if (isOptimistic) {
@@ -33,7 +68,7 @@ export function KnowledgeBaseTile({
     <div
       role="button"
       tabIndex={0}
-      className={`flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm transition hover:bg-muted/40 ${isOptimistic ? "cursor-wait opacity-60" : "cursor-pointer"}`}
+      className={`flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm transition hover:bg-muted/40 ${isOptimistic ? "cursor-wait opacity-60" : isFailed ? "border-destructive/30 bg-destructive/5 cursor-pointer" : "cursor-pointer"}`}
       onClick={handlePreview}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -42,7 +77,7 @@ export function KnowledgeBaseTile({
         }
       }}
     >
-      <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
+      <span className={`grid size-11 shrink-0 place-items-center rounded-lg ${isFailed ? "bg-destructive/10 text-destructive" : "bg-blue-500/10 text-blue-500"}`}>
         {isOptimistic ? (
           <Loader2 className="size-5 animate-spin" />
         ) : (
@@ -62,6 +97,7 @@ export function KnowledgeBaseTile({
             <>
               <span>Uploaded: {formatDate(document.uploadedAt)}</span>
               <span>{document.fileSizeKb} KB</span>
+              <ProcessingStatusBadge status={document.processingStatus} />
             </>
           )}
         </div>
@@ -70,7 +106,7 @@ export function KnowledgeBaseTile({
       <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
-          disabled={isOptimistic}
+          disabled={isOptimistic || !isReady}
           className="grid size-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
           aria-label={`Edit ${document.title}`}
           onClick={(event) => {

@@ -5,15 +5,34 @@ import { SidebarTile } from "@/components/shared/navigation/sidebar/SidebarTile"
 import { SideBarCollapseButton } from "@/components/shared/navigation/sidebar/SidebarCollapseBtn";
 import { SideBarTop } from "@/components/shared/navigation/sidebar/SidebarTopLogo";
 import { useSidebarStore } from "@/lib/stores/sidebar-store";
-import { mainNavItems, secondaryNavItems } from "../nav-items";
+import { mainNavItems, secondaryNavItems, type NavItem } from "../nav-items";
 import { useLogout } from "@/features/auth/api/auth.queries";
 import { useNavigate } from "@tanstack/react-router";
+import { useActiveStoreStore } from "@/lib/stores/active-store-store";
+import { useMyPermissions } from "@/features/stores/api/permissions.queries";
+import type { StorePermissionsDto } from "@/features/stores/api/permissions.api";
+
+const LEVEL_ORDER: Record<string, number> = { none: 0, read: 1, write: 2 };
+
+function canViewItem(item: NavItem, perms: StorePermissionsDto | undefined): boolean {
+  if (!perms) return true; // loading or no store: show everything
+  if (item.adminOnly) return perms.role === "admin";
+  if (item.permission) {
+    const level = perms.permissions[item.permission] ?? "none";
+    return LEVEL_ORDER[level] >= LEVEL_ORDER["read"];
+  }
+  return true;
+}
 
 export function Sidebar() {
   const collapsed = useSidebarStore((state) => state.collapsed);
   const toggleCollapsed = useSidebarStore((state) => state.toggleCollapsed);
-  const mainItemsAboveGrow = mainNavItems.slice(0, 6);
-  const mainItemsAfterGrow = mainNavItems.slice(6);
+
+  const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
+  const { data: perms } = useMyPermissions(activeStoreId);
+
+  const topItems = mainNavItems.filter((item) => !item.bottom && canViewItem(item, perms));
+  const bottomItems = mainNavItems.filter((item) => item.bottom && canViewItem(item, perms));
 
   const logoutMutation = useLogout();
   const navigate = useNavigate();
@@ -51,7 +70,7 @@ export function Sidebar() {
           },
         }}
       >
-        {mainItemsAboveGrow.map((item) => (
+        {topItems.map((item) => (
           <SidebarTile
             key={item.to}
             collapsed={collapsed}
@@ -61,9 +80,9 @@ export function Sidebar() {
           />
         ))}
 
-        <div className="grow"></div>
+        <div className="grow" />
 
-        {mainItemsAfterGrow.map((item) => (
+        {bottomItems.map((item) => (
           <SidebarTile
             key={item.to}
             collapsed={collapsed}
@@ -73,7 +92,6 @@ export function Sidebar() {
           />
         ))}
         <div className="h-px bg-white/20" />
-        {/* logout should call a function that would clear the auth state or query cache or whatever and then navigate to /login */}
         {secondaryNavItems.map((item) => (
           <SidebarTile
             key={item.to}
