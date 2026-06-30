@@ -1,4 +1,6 @@
-import { Bell } from "lucide-react";
+import { useState } from "react";
+import { Bell, CheckCheck } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -7,43 +9,100 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+  useNotifications,
+  useUnreadCount,
+  useMarkAllRead,
+  useMarkRead,
+} from "@/features/notifications/api/notifications.queries";
+import type { AppNotification, NotificationType } from "@/features/notifications/types/notification.types";
 
-type Notification = {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  unread?: boolean;
+const NOTIFICATION_ROUTES: Partial<Record<NotificationType, string>> = {
+  inventory_sync_complete: "/inventory",
+  connector_failed: "/connectors",
+  knowledge_doc_processed: "/kbase",
+  new_conversation: "/conversations",
+  new_message: "/conversations",
+  escalation: "/conversations",
+  action_request_pending: "/conversations",
+  invitation_received: "/userpermissions",
 };
 
-const demoNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "Shopify connection failed",
-    description: "Reconnect your store to resume order sync.",
-    time: "2 min ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "New conversation assigned",
-    description: "A WhatsApp customer chat needs review.",
-    time: "12 min ago",
-    unread: true,
-  },
-  {
-    id: "3",
-    title: "AI resolution rate improved",
-    description: "Automation handled 8.2% more tickets today.",
-    time: "1 hr ago",
-  },
-];
+function relativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
-export function NotificationPopover() {
-  const unreadCount = demoNotifications.filter((item) => item.unread).length;
+function NotificationRow({
+  notification,
+  onRead,
+  onClose,
+}: {
+  notification: AppNotification;
+  onRead: (id: string) => void;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+
+  function handleClick() {
+    if (!notification.read) onRead(notification.id);
+    const route = NOTIFICATION_ROUTES[notification.type];
+    if (route) {
+      onClose();
+      const conversationId = notification.metadata?.conversation_id as string | undefined;
+      if (route === "/conversations" && conversationId) {
+        void navigate({ to: "/conversations", search: { c: conversationId } });
+      } else {
+        void navigate({ to: route });
+      }
+    }
+  }
 
   return (
-    <Popover>
+    <button
+      type="button"
+      className="flex w-full gap-3 px-4 py-3 text-left hover:bg-muted transition-colors"
+      onClick={handleClick}
+    >
+      <span
+        className={cn(
+          "mt-1.5 size-2 shrink-0 rounded-full",
+          notification.read ? "bg-transparent" : "bg-primary",
+        )}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm font-medium leading-snug">{notification.title}</p>
+          <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+            {relativeTime(notification.created_at)}
+          </span>
+        </div>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+          {notification.body}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+export function NotificationPopover() {
+  const [open, setOpen] = useState(false);
+  const { data: unreadData } = useUnreadCount();
+  const { data: notificationsData, isLoading } = useNotifications();
+  const markAllReadMutation = useMarkAllRead();
+  const markReadMutation = useMarkRead();
+
+  const unreadCount = unreadData?.count ?? 0;
+  const notifications = notificationsData?.results ?? [];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -60,47 +119,48 @@ export function NotificationPopover() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="border-b px-4 py-3">
-          <p className="text-sm font-semibold">Notifications</p>
-          <p className="text-xs text-muted-foreground">
-            {unreadCount} unread updates
-          </p>
+      <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] p-0">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold">Notifications</p>
+            <p className="text-xs text-muted-foreground">
+              {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+            </p>
+          </div>
+          {unreadCount > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => markAllReadMutation.mutate()}
+              disabled={markAllReadMutation.isPending}
+            >
+              <CheckCheck className="size-3.5" />
+              Mark all read
+            </Button>
+          )}
         </div>
 
         <div className="max-h-80 overflow-y-auto py-1">
-          {demoNotifications.map((notification) => (
-            <button
-              key={notification.id}
-              type="button"
-              className="flex w-full gap-3 px-4 py-3 text-left hover:bg-muted"
-            >
-              <span
-                className={cn(
-                  "mt-1 size-2 shrink-0 rounded-full",
-                  notification.unread ? "bg-primary" : "bg-transparent",
-                )}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <span className="text-sm text-muted-foreground">Loading…</span>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <span className="text-sm text-muted-foreground">No notifications yet</span>
+            </div>
+          ) : (
+            notifications.map((notification) => (
+              <NotificationRow
+                key={notification.id}
+                notification={notification}
+                onRead={(id) => markReadMutation.mutate(id)}
+                onClose={() => setOpen(false)}
               />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-medium">{notification.title}</p>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {notification.time}
-                  </span>
-                </div>
-
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  {notification.description}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="border-t p-2">
-          <Button variant="ghost" className="w-full justify-center">
-            View all notifications
-          </Button>
+            ))
+          )}
         </div>
       </PopoverContent>
     </Popover>

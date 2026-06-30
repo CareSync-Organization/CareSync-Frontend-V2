@@ -10,10 +10,13 @@ import { motion } from "framer-motion";
 import { queryKeys } from "@/lib/query-keys";
 import { getMe } from "@/features/auth/api/auth.api";
 import { mapUserDto } from "@/features/auth/api/auth.mapper";
+import { getMyPermissions } from "@/features/stores/api/permissions.api";
 
 import { useStores } from "@/features/stores/api/stores.queries";
 import { useActiveStoreStore } from "@/lib/stores/active-store-store";
 import { useEffect } from "react";
+import { useNotificationsSocket } from "@/features/notifications/hooks/useNotificationsSocket";
+import { useConversationSocket } from "@/features/conversation/hooks/useConversationsSocket";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context, location }) => {
@@ -30,6 +33,19 @@ export const Route = createFileRoute("/_app")({
         },
       });
     }
+
+    // Ensure permissions are in cache before rendering to prevent sidebar flicker.
+    // staleTime: Infinity means: return cached data instantly on re-navigation;
+    // only fetch when there is NO cached data at all (first load).
+    // useMyPermissions (staleTime: 0) handles background freshness after that.
+    const activeStoreId = useActiveStoreStore.getState().activeStoreId;
+    if (activeStoreId) {
+      await context.queryClient.ensureQueryData({
+        queryKey: queryKeys.permissions.my(activeStoreId),
+        queryFn: () => getMyPermissions(activeStoreId),
+        staleTime: Infinity,
+      });
+    }
   },
   component: RouteComponent,
 });
@@ -44,6 +60,9 @@ function RouteComponent() {
     (state) => state.setActiveStoreId,
   );
 
+  useNotificationsSocket(true);
+  useConversationSocket(activeStoreId, null);
+
   useEffect(() => {
     if (!isLoading && stores.length > 0) {
       const hasActive = stores.some((s) => s.id === activeStoreId);
@@ -56,7 +75,7 @@ function RouteComponent() {
   }, [stores, isLoading, activeStoreId, setActiveStoreId]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <div className="hidden md:flex">
         <Sidebar />
       </div>
@@ -67,7 +86,7 @@ function RouteComponent() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
-          className="min-w-0 flex-1 overflow-y-auto px-4 md:px-8 lg:px-12 py-10"
+          className="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 md:px-8 lg:px-4 py-10"
         >
           {!isLoading && stores.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
