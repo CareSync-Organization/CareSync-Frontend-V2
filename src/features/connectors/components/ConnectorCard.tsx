@@ -7,7 +7,11 @@ import { channelConfig } from "@/features/integrations/config/channel-config";
 import type { ChannelKey } from "@/features/integrations/types/channel.types";
 import { cn } from "@/lib/utils";
 
-export type ConnectorStatus = "connected" | "error" | "available";
+export type ConnectorStatus =
+  | "connected"
+  | "error"
+  | "available"
+  | "coming-soon";
 
 type ConnectorCardProps = {
   channel: ChannelKey;
@@ -39,6 +43,14 @@ function ConnectorStatusBadge({ status }: { status: ConnectorStatus }) {
     );
   }
 
+  if (status === "coming-soon") {
+    return (
+      <Badge variant="outline" className="text-muted-foreground">
+        Coming soon
+      </Badge>
+    );
+  }
+
   return <Badge variant="secondary">Available</Badge>;
 }
 
@@ -56,7 +68,12 @@ export function ConnectorCard({
   const Icon = config.icon;
 
   return (
-    <Card className="flex min-h-64 flex-col rounded-xl border bg-card p-5 shadow-sm">
+    <Card
+      className={cn(
+        "flex min-h-64 flex-col rounded-xl border bg-card p-5 shadow-sm",
+        status === "coming-soon" && "opacity-60 grayscale-[0.35]",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div
           className={cn(
@@ -119,6 +136,10 @@ export function ConnectorCard({
             onClick={onReconnect}
           >
             Reconnect
+          </ActionButton>
+        ) : status === "coming-soon" ? (
+          <ActionButton type="button" size="sm" fullWidth disabled>
+            Coming soon
           </ActionButton>
         ) : (
           <ActionButton type="button" size="sm" fullWidth onClick={onConnect}>

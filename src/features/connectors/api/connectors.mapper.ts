@@ -3,6 +3,7 @@ import type {
   ConnectorDto,
   ConnectorMetadata,
   ConnectorRecord,
+  DarazConnectorMetadata,
   ShopifyConnectorMetadata,
   WhatsAppConnectorMetadata,
 } from "../types/connectors.types";
@@ -73,6 +74,48 @@ function mapShopifyConnectorMetadata(
   };
 }
 
+function mapDarazConnectorMetadata(
+  metadata: Record<string, unknown>,
+): DarazConnectorMetadata {
+  const lastInventorySync = asRecord(metadata.last_inventory_sync);
+  const lastImPoll = asRecord(metadata.last_im_poll);
+  const region = asString(metadata.region);
+
+  return {
+    region:
+      region === "pk" ||
+      region === "bd" ||
+      region === "lk" ||
+      region === "np" ||
+      region === "mm"
+        ? region
+        : undefined,
+    regionName: asString(metadata.region_name),
+    sellerId: asString(metadata.seller_id),
+    shortCode: asString(metadata.short_code),
+    accountId: asString(metadata.account_id),
+    accessTokenExpiresAt: asString(metadata.access_token_expires_at),
+    refreshTokenExpiresAt: asString(metadata.refresh_token_expires_at),
+    connectedAt: asString(metadata.connected_at),
+    lastInventorySync: lastInventorySync
+      ? {
+          created: asNumber(lastInventorySync.created),
+          updated: asNumber(lastInventorySync.updated),
+          skipped: asNumber(lastInventorySync.skipped),
+          conflicts: asNumber(lastInventorySync.conflicts),
+          syncedAt: asString(lastInventorySync.synced_at),
+        }
+      : undefined,
+    lastImPoll: lastImPoll
+      ? {
+          sessions: asNumber(lastImPoll.sessions),
+          messagesCreated: asNumber(lastImPoll.messages_created),
+          polledAt: asString(lastImPoll.polled_at),
+        }
+      : undefined,
+  };
+}
+
 function mapConnectorMetadata(dto: ConnectorDto): ConnectorMetadata {
   if (dto.platform === "whatsapp") {
     return mapWhatsAppConnectorMetadata(dto.metadata);
@@ -80,6 +123,10 @@ function mapConnectorMetadata(dto: ConnectorDto): ConnectorMetadata {
 
   if (dto.platform === "shopify") {
     return mapShopifyConnectorMetadata(dto.metadata);
+  }
+
+  if (dto.platform === "daraz") {
+    return mapDarazConnectorMetadata(dto.metadata);
   }
 
   return dto.metadata;

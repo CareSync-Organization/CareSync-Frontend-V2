@@ -21,6 +21,7 @@ type ShopifyConfigureDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   connector: ConnectorRecord | null;
+  readOnly?: boolean;
 };
 
 function DetailRow({ label, value }: { label: string; value?: string }) {
@@ -52,6 +53,7 @@ export function ShopifyConfigureDialog({
   open,
   onOpenChange,
   connector,
+  readOnly = false,
 }: ShopifyConfigureDialogProps) {
   const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
   const syncMutation = useSyncShopifyInventory(activeStoreId ?? undefined);
@@ -112,7 +114,7 @@ export function ShopifyConfigureDialog({
             startIcon={<RefreshCw className="size-4" />}
             isLoading={syncMutation.isPending}
             loadingText="Starting sync..."
-            disabled={!connector || connector.status !== "active"}
+            disabled={readOnly || !connector || connector.status !== "active"}
             onClick={handleSyncInventory}
           >
             Sync inventory now

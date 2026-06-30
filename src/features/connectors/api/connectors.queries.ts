@@ -6,12 +6,16 @@ import {
   completeWhatsAppOAuth,
   deleteConnector,
   getStoreConnectors,
+  initiateDarazConnect,
   initiateShopifyConnect,
+  pollDarazMessages,
+  syncDarazInventory,
   syncShopifyInventory,
 } from "./connectors.api";
 import { mapConnectorDto } from "./connectors.mapper";
 import type {
   ConnectorRecord,
+  DarazRegion,
   WhatsAppOAuthCompleteInput,
 } from "../types/connectors.types";
 
@@ -152,6 +156,63 @@ export function useSyncShopifyInventory(storeId: string | undefined) {
         error instanceof Error
           ? error.message
           : "Failed to start Shopify inventory sync.",
+      );
+    },
+  });
+}
+
+export function useInitiateDarazConnect() {
+  return useMutation({
+    mutationFn: ({ storeId, region }: { storeId: string; region: DarazRegion }) =>
+      initiateDarazConnect({ storeId, region }),
+    onSuccess: ({ auth_url }) => {
+      window.location.assign(auth_url);
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to start Daraz authorization.",
+      );
+    },
+  });
+}
+
+export function useSyncDarazInventory(storeId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (connectorId: string) => {
+      if (!storeId) throw new Error("Select a store before syncing Daraz inventory.");
+      return syncDarazInventory(storeId, connectorId);
+    },
+    onSuccess: () => {
+      if (storeId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.connectors.list(storeId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.list(storeId) });
+      }
+      toast.success("Daraz inventory sync started.");
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to sync Daraz inventory.",
+      );
+    },
+  });
+}
+
+export function usePollDarazMessages(storeId: string | undefined) {
+  return useMutation({
+    mutationFn: (connectorId: string) => {
+      if (!storeId) throw new Error("Select a store before checking Daraz messages.");
+      return pollDarazMessages(storeId, connectorId);
+    },
+    onSuccess: () => {
+      toast.success("Checking Daraz for new customer messages.");
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to check Daraz messages.",
       );
     },
   });
