@@ -2,8 +2,9 @@ import { api } from "@/lib/api";
 import type { AppNotification, NotificationListResponse } from "../types/notification.types";
 
 export function getNotifications(params?: { unread?: boolean }) {
-  const qs = params?.unread ? "?unread=true" : "";
-  return api<NotificationListResponse>(`/api/notifications/${qs}`);
+  const searchParams = new URLSearchParams({ limit: "50" });
+  if (params?.unread) searchParams.set("unread", "true");
+  return api<NotificationListResponse>(`/api/notifications/?${searchParams.toString()}`);
 }
 
 export function getUnreadCount() {

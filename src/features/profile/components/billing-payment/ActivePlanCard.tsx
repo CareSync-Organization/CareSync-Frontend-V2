@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 import { ActionButton } from "@/components/shared/ActionButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +34,7 @@ export function ActivePlanCard() {
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
-              <ActionButton type="button" size="sm">
+              <ActionButton type="button" size="sm" onClick={() => toast.info("Coming soon")}>
                 Change Plan
               </ActionButton>
               <ActionButton
@@ -40,6 +42,7 @@ export function ActivePlanCard() {
                 size="sm"
                 variant="outline"
                 className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                onClick={() => toast.info("Coming soon")}
               >
                 Cancel Plan
               </ActionButton>

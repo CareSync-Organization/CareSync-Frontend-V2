@@ -58,6 +58,16 @@ export function useMarkRead() {
         },
       );
       queryClient.setQueryData(
+        queryKeys.notifications.list({ unread: true }),
+        (old: NotificationListResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            results: old.results.filter((n) => n.id !== updated.id),
+          };
+        },
+      );
+      queryClient.setQueryData(
         queryKeys.notifications.unreadCount(),
         (old: { count: number } | undefined) => ({
           count: Math.max(0, (old?.count ?? 1) - 1),

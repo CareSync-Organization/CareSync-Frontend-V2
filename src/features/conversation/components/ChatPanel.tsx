@@ -19,7 +19,7 @@ type ChatPanelProps = {
 
 export function ChatPanel({ conversation, className }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { data: detail, isLoading } = useConversationDetail(conversation.id);
+  const { data: detail, isLoading, isError, refetch } = useConversationDetail(conversation.id);
   const sendMessage = useSendMessage({
     storeId: conversation.storeId,
     conversationId: conversation.id,
@@ -55,6 +55,7 @@ export function ChatPanel({ conversation, className }: ChatPanelProps) {
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
         {isLoading ? (
           <div className="flex min-h-full flex-col justify-end space-y-4">
+
             <div className="flex items-end gap-2">
               <div className="size-8 shrink-0 rounded-full bg-muted animate-pulse" />
               <div className="h-10 w-44 rounded-2xl rounded-tl-sm bg-muted animate-pulse" />
@@ -87,6 +88,17 @@ export function ChatPanel({ conversation, className }: ChatPanelProps) {
               <div className="size-8 shrink-0 rounded-full bg-muted animate-pulse" />
               <div className="h-8 w-32 rounded-2xl rounded-tl-sm bg-muted animate-pulse" />
             </div>
+          </div>
+        ) : isError ? (
+          <div className="flex min-h-full flex-col items-center justify-center gap-3 text-center">
+            <p className="text-sm text-muted-foreground">Failed to load messages.</p>
+            <button
+              type="button"
+              className="text-sm font-medium text-primary hover:underline"
+              onClick={() => void refetch()}
+            >
+              Try again
+            </button>
           </div>
         ) : (
           <div className="flex min-h-full flex-col justify-end">
