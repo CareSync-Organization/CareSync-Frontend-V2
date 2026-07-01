@@ -11,7 +11,7 @@ import { useTicket } from "@/features/tickets/api/tickets.queries";
 import type { Ticket } from "@/features/tickets/types/ticket.types";
 import { useActiveStoreStore } from "@/lib/stores/active-store-store";
 import { useDashboard } from "../api/dashboard.queries";
-import { useNotifications } from "@/features/notifications/api/notifications.queries";
+import { useNotifications, useMarkRead } from "@/features/notifications/api/notifications.queries";
 import type { NotificationType } from "@/features/notifications/types/notification.types";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -60,8 +60,14 @@ export function DashboardPage() {
   const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
 
   const navigate = useNavigate();
-  const { data: snapshot, isLoading: dashboardLoading } = useDashboard(activeStoreId);
+  const {
+    data: snapshot,
+    isLoading: dashboardLoading,
+    isError: dashboardError,
+    refetch: refetchDashboard,
+  } = useDashboard(activeStoreId);
   const { data: notificationsData } = useNotifications({ unread: true });
+  const markReadMutation = useMarkRead();
 
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -93,10 +99,11 @@ export function DashboardPage() {
       }));
   }, [notificationsData]);
 
-  const visibleBanners = banners.filter((b) => !dismissedIds.has(b.id));
+  const visibleBanners = banners.filter((b) => !dismissedIds.has(b.id)).slice(0, 3);
 
   function dismiss(id: string) {
     setDismissedIds((prev) => new Set([...prev, id]));
+    markReadMutation.mutate(id);
   }
 
   function handleTicketClick(ticket: Ticket) {
@@ -130,6 +137,19 @@ export function DashboardPage() {
           onDismiss={() => dismiss(banner.id)}
         />
       ))}
+
+      {dashboardError ? (
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <p>Failed to load dashboard data. Some sections may be incomplete.</p>
+          <button
+            type="button"
+            className="shrink-0 font-medium hover:underline"
+            onClick={() => void refetchDashboard()}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {dashboardLoading ? (

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import type { AppNotification, NotificationListResponse } from "../types/notification.types";
 
@@ -72,9 +73,17 @@ export function useNotificationsSocket(enabled: boolean) {
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         ws = null;
-        if (!destroyed) scheduleReconnect();
+        if (destroyed) return;
+        if (event.code === 4401) {
+          api<unknown>("/api/auth/refresh/", { method: "POST" })
+            .then(() => { if (!destroyed) scheduleReconnect(); })
+            .catch(() => { /* refresh failed — stay disconnected */ });
+          return;
+        }
+        if (event.code === 4403) return;
+        scheduleReconnect();
       };
 
       ws.onerror = () => {

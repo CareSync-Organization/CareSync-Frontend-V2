@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useActiveStoreStore } from "@/lib/stores/active-store-store";
 import {
   useNotifications,
   useUnreadCount,
@@ -49,11 +50,16 @@ function NotificationRow({
   onClose: () => void;
 }) {
   const navigate = useNavigate();
+  const activeStoreId = useActiveStoreStore((state) => state.activeStoreId);
+  const setActiveStoreId = useActiveStoreStore((state) => state.setActiveStoreId);
 
   function handleClick() {
     if (!notification.read) onRead(notification.id);
     const route = NOTIFICATION_ROUTES[notification.type];
     if (route) {
+      if (notification.store !== null && notification.store !== activeStoreId) {
+        setActiveStoreId(notification.store);
+      }
       onClose();
       const conversationId = notification.metadata?.conversation_id as string | undefined;
       if (route === "/conversations" && conversationId) {

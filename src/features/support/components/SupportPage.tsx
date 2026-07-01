@@ -5,6 +5,7 @@ import {
   Mail,
   MessageCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { SearchInput } from "@/components/shared/SearchInput";
@@ -22,6 +23,7 @@ type SupportCategory = {
   icon: React.ComponentType<{ className?: string }>;
   toneClassName: string;
   iconClassName: string;
+  onClick: () => void;
 };
 
 const supportCategories: SupportCategory[] = [
@@ -31,6 +33,7 @@ const supportCategories: SupportCategory[] = [
     icon: BookOpen,
     toneClassName: "bg-primary/10",
     iconClassName: "text-primary",
+    onClick: () => toast.info("Documentation coming soon"),
   },
   {
     title: "Live Chat",
@@ -38,6 +41,7 @@ const supportCategories: SupportCategory[] = [
     icon: MessageCircle,
     toneClassName: "bg-orange-500/10",
     iconClassName: "text-orange-500",
+    onClick: () => toast.info("Live chat coming soon"),
   },
   {
     title: "Email Support",
@@ -45,6 +49,7 @@ const supportCategories: SupportCategory[] = [
     icon: Mail,
     toneClassName: "bg-violet-500/10",
     iconClassName: "text-violet-500",
+    onClick: () => { window.location.href = "mailto:junaidjaffery1@gmail.com"; },
   },
   {
     title: "API Docs",
@@ -52,6 +57,7 @@ const supportCategories: SupportCategory[] = [
     icon: FileText,
     toneClassName: "bg-emerald-500/10",
     iconClassName: "text-emerald-500",
+    onClick: () => toast.info("API documentation coming soon"),
   },
 ];
 
@@ -87,6 +93,7 @@ export function SupportPage() {
               key={category.title}
               type="button"
               className="rounded-xl border bg-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              onClick={category.onClick}
             >
               <span
                 className={cn(
@@ -117,6 +124,7 @@ export function SupportPage() {
               key={article}
               type="button"
               className="flex h-11 w-full items-center justify-between gap-4 rounded-lg px-3 text-left text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              onClick={() => toast.info("Article coming soon")}
             >
               <span className="truncate text-foreground">{article}</span>
               <ExternalLink className="size-4 shrink-0 text-muted-foreground" />

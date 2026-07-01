@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Loader2, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useHasPermission } from "@/lib/hooks/useHasPermission";
 import { useActiveStoreStore } from "@/lib/stores/active-store-store";
 import { channelConfig } from "@/features/integrations/config/channel-config";
 import { sendMessage } from "@/features/conversation/api/conversation.api";
 
-import { useApproveTicket, useDenyTicket } from "../api/tickets.queries";
+import { useApproveTicket, useDenyTicket, usePatchTicketPayload, useTicket } from "../api/tickets.queries";
 import { ACTION_LABELS, STATUS_LABELS } from "../types/ticket.types";
 import type { Ticket, TicketActionType, TicketStatus } from "../types/ticket.types";
 import { ApproveDialog } from "./ApproveDialog";
@@ -76,6 +79,17 @@ function PayloadRow({ label, value }: { label: string; value: unknown }) {
   );
 }
 
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  order_id: "Order ID",
+  reason: "Reason",
+  line_items: "Line items",
+  fulfillment_id: "Fulfillment ID",
+  tracking_number: "Tracking number",
+  tracking_company: "Carrier",
+  item_id: "Item ID",
+  available: "New quantity",
+};
+
 const PAYLOAD_FIELDS: Record<TicketActionType, Array<[string, string]>> = {
   cancel_order: [["Order ID", "order_id"], ["Reason", "reason"]],
   create_refund: [["Order ID", "order_id"], ["Line items", "line_items"]],
@@ -101,17 +115,53 @@ export function TicketDetailModal({
   const canWrite = useHasPermission("conversations", "write");
   const approveMutation = useApproveTicket(activeStoreId);
   const denyMutation = useDenyTicket(activeStoreId);
+  const patchPayloadMutation = usePatchTicketPayload(activeStoreId);
+  const { data: liveTicket } = useTicket(ticket?.id ?? null);
 
   const [approveOpen, setApproveOpen] = useState(false);
   const [denyOpen, setDenyOpen] = useState(false);
+  const [fieldDraft, setFieldDraft] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setFieldDraft({});
+  }, [ticket?.id]);
 
   if (!ticket) return null;
+
+  const currentPayload = liveTicket?.payload ?? ticket.payload;
+  const isActionable = liveTicket?.isActionable ?? ticket.isActionable;
+  const currentMissingFields = liveTicket?.missingActionFields ?? ticket.missingActionFields;
 
   const status = statusConfig[ticket.status];
   const StatusIcon = status.icon;
   const isPending = ticket.status === "pending";
   const isProcessing = ticket.status === "processing";
-  const isMutating = approveMutation.isPending || denyMutation.isPending;
+  const isMutating = approveMutation.isPending || denyMutation.isPending || patchPayloadMutation.isPending;
+
+  function handleSavePayload() {
+    const mergedPayload: Record<string, unknown> = { ...currentPayload };
+    for (const field of currentMissingFields) {
+      const raw = (fieldDraft[field] ?? "").trim();
+      if (field === "line_items") {
+        try {
+          mergedPayload[field] = JSON.parse(raw);
+        } catch {
+          toast.error('Line items must be valid JSON, e.g. [{"variant_id":"123","quantity":1}]');
+          return;
+        }
+      } else if (field === "available") {
+        const num = Number(raw);
+        if (isNaN(num)) { toast.error("Quantity must be a number"); return; }
+        mergedPayload[field] = num;
+      } else {
+        mergedPayload[field] = raw;
+      }
+    }
+    patchPayloadMutation.mutate(
+      { ticketId: ticket!.id, payload: mergedPayload },
+      { onSuccess: () => setFieldDraft({}) },
+    );
+  }
   const channelLabel =
     channelConfig[ticket.channel as keyof typeof channelConfig]?.label ??
     ticket.channel;
@@ -207,24 +257,70 @@ export function TicketDetailModal({
                 <PayloadRow
                   key={key}
                   label={label}
-                  value={ticket.payload[key]}
+                  value={currentPayload[key]}
                 />
               ))}
             </div>
 
-            {/* Missing fields warning */}
-            {!ticket.isActionable && ticket.missingActionFields.length > 0 ? (
-              <div className="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                <div>
-                  <p className="font-medium">Missing action data</p>
-                  <p className="mt-0.5 text-xs">
-                    Required before approving:{" "}
-                    <span className="font-mono">
-                      {ticket.missingActionFields.join(", ")}
-                    </span>
-                  </p>
+            {/* Missing fields warning + fill-in form */}
+            {!isActionable && currentMissingFields.length > 0 ? (
+              <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                <div className="flex gap-3 text-sm text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                  <div>
+                    <p className="font-medium">Missing action data</p>
+                    <p className="mt-0.5 text-xs">
+                      {isPending
+                        ? "Fill in the fields below to enable approval."
+                        : <>Required: <span className="font-mono">{currentMissingFields.join(", ")}</span></>}
+                    </p>
+                  </div>
                 </div>
+                {isPending ? (
+                  <div className="space-y-2 border-t border-amber-500/20 pt-3">
+                    {currentMissingFields.map((field) => (
+                      <div key={field} className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">
+                          {MISSING_FIELD_LABELS[field] ?? field}
+                          {field === "line_items" ? <span className="ml-1 opacity-60">(JSON array)</span> : null}
+                        </label>
+                        {field === "line_items" ? (
+                          <Textarea
+                            placeholder={'[{"variant_id": "123", "quantity": 1}]'}
+                            className="font-mono text-xs"
+                            rows={3}
+                            value={fieldDraft[field] ?? ""}
+                            onChange={(e) =>
+                              setFieldDraft((prev) => ({ ...prev, [field]: e.target.value }))
+                            }
+                          />
+                        ) : (
+                          <Input
+                            type={field === "available" ? "number" : "text"}
+                            placeholder={MISSING_FIELD_LABELS[field] ?? field}
+                            value={fieldDraft[field] ?? ""}
+                            onChange={(e) =>
+                              setFieldDraft((prev) => ({ ...prev, [field]: e.target.value }))
+                            }
+                          />
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-amber-500/30 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+                      disabled={patchPayloadMutation.isPending}
+                      onClick={handleSavePayload}
+                    >
+                      {patchPayloadMutation.isPending ? (
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                      ) : null}
+                      Save & enable approval
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -277,9 +373,9 @@ export function TicketDetailModal({
                   <Button
                     type="button"
                     size="sm"
-                    disabled={isMutating || !ticket.isActionable}
+                    disabled={isMutating || !isActionable}
                     title={
-                      !ticket.isActionable
+                      !isActionable
                         ? "Complete missing action data before approving"
                         : undefined
                     }

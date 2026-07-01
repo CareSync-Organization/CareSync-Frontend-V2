@@ -51,6 +51,45 @@ export function useUpdateConversationStatus(storeId: string | null | undefined) 
     mutationFn: ({ conversationId, status }: { conversationId: string; status: ConversationStatus }) =>
       updateConversationStatus(conversationId, status),
 
+    onMutate: async ({ conversationId, status }) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.conversations.detail(conversationId),
+      });
+      if (storeId) {
+        await queryClient.cancelQueries({
+          queryKey: queryKeys.conversations.list({ storeId }),
+        });
+      }
+
+      const previousDetail = queryClient.getQueryData<ConversationDetail>(
+        queryKeys.conversations.detail(conversationId),
+      );
+      const previousList = storeId
+        ? queryClient.getQueryData<ConversationSummary[]>(
+            queryKeys.conversations.list({ storeId }),
+          )
+        : undefined;
+
+      queryClient.setQueryData<ConversationDetail>(
+        queryKeys.conversations.detail(conversationId),
+        (old) => (old ? { ...old, status } : undefined),
+      );
+
+      if (storeId) {
+        queryClient.setQueryData<ConversationSummary[]>(
+          queryKeys.conversations.list({ storeId }),
+          (oldConversations = []) =>
+            oldConversations.map((conversation) =>
+              conversation.id === conversationId
+                ? { ...conversation, status }
+                : conversation,
+            ),
+        );
+      }
+
+      return { previousDetail, previousList };
+    },
+
     onSuccess: (dto, { conversationId }) => {
       const updated = mapConversationDetailDto(dto);
 
@@ -79,7 +118,21 @@ export function useUpdateConversationStatus(storeId: string | null | undefined) 
       toast.success(`Status changed to ${updated.status}`);
     },
 
-    onError: () => toast.error("Failed to update status"),
+    onError: (_err, { conversationId }, context) => {
+      if (context?.previousDetail) {
+        queryClient.setQueryData(
+          queryKeys.conversations.detail(conversationId),
+          context.previousDetail,
+        );
+      }
+      if (storeId && context?.previousList) {
+        queryClient.setQueryData(
+          queryKeys.conversations.list({ storeId }),
+          context.previousList,
+        );
+      }
+      toast.error("Failed to update status");
+    },
   });
 }
 

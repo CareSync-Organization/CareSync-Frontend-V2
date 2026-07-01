@@ -1,4 +1,5 @@
 import { CreditCard } from "lucide-react";
+import { toast } from "sonner";
 
 import { ActionButton } from "@/components/shared/ActionButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,7 @@ export function PaymentMethodCard() {
               <p className="text-xs text-muted-foreground">Expires 12/25</p>
             </div>
           </div>
-          <ActionButton type="button" variant="outline" size="sm">
+          <ActionButton type="button" variant="outline" size="sm" onClick={() => toast.info("Coming soon")}>
             Update
           </ActionButton>
         </div>

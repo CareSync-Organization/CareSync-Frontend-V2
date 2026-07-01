@@ -2,6 +2,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 type ApiErrorData = Record<string, unknown> | string | null
 let csrfToken: string | null = null;
+let csrfFetchPromise: Promise<string> | null = null;
 
 export class ApiError extends Error {
   status: number;
@@ -29,23 +30,27 @@ function getCookie(name: string) {
 }
 
 
-async function fetchCsrfToken() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new ApiError(response.status, "Could not fetch CSRF token.");
-  }
-
-  const data = (await response.json()) as { csrfToken?: string };
-
-  if (!data.csrfToken) {
-    throw new ApiError(response.status, "CSRF token response was empty.");
-  }
-
-  csrfToken = data.csrfToken;
-  return csrfToken;
+async function fetchCsrfToken(): Promise<string> {
+  if (csrfFetchPromise) return csrfFetchPromise;
+  csrfFetchPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new ApiError(response.status, "Could not fetch CSRF token.");
+      }
+      const data = (await response.json()) as { csrfToken?: string };
+      if (!data.csrfToken) {
+        throw new ApiError(response.status, "CSRF token response was empty.");
+      }
+      csrfToken = data.csrfToken;
+      return data.csrfToken;
+    } finally {
+      csrfFetchPromise = null;
+    }
+  })();
+  return csrfFetchPromise;
 }
 
 async function getCsrfToken() {
@@ -177,6 +182,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export function api<T>(path: string, init: RequestInit = {}) {
   return request<T>(path, init);
+}
+
+export async function apiRaw(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = await buildHeaders(init);
+  const requestInit: RequestInit = { ...init, headers, credentials: "include" };
+  let response = await safeFetch(`${API_BASE_URL}${path}`, requestInit);
+  if (response.status === 401 && !isAuthEndpoint(path)) {
+    await refreshSession();
+    response = await safeFetch(`${API_BASE_URL}${path}`, requestInit);
+  }
+  return response;
 }
 
 export function apiFormData<T>(

@@ -1,7 +1,5 @@
-import { api } from "@/lib/api";
+import { api, apiRaw } from "@/lib/api";
 import type { AnalyticsSnapshotDTO } from "../types/analytics.types";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export type AnalyticsRange = {
     start: string;
@@ -24,10 +22,7 @@ export async function downloadAnalyticsExport(storeId: string, range: AnalyticsR
         end: range.end,
         granularity: range.granularity,
     });
-    const response = await fetch(
-        `${API_BASE_URL}/api/stores/${storeId}/analytics/export/?${params}`,
-        { credentials: "include" },
-    );
+    const response = await apiRaw(`/api/stores/${storeId}/analytics/export/?${params}`);
     if (!response.ok) {
         throw new Error(`Export failed: ${response.status}`);
     }

@@ -32,9 +32,9 @@ const timeRangeOptions: { value: TimeRange; label: string }[] = [
 ];
 
 const trendTitleMap: Record<TimeRange, string> = {
-  "3m": "Conversation Trends — Last 3 Months",
-  "6m": "Conversation Trends — Last 6 Months",
-  "1y": "Conversation Trends — Last Year",
+  "3m": "Conversation Trends of the Last 3 Months",
+  "6m": "Conversation Trends of the Last 6 Months",
+  "1y": "Conversation Trends of the Last Year",
 };
 
 function computeRange(range: TimeRange): AnalyticsRange {
