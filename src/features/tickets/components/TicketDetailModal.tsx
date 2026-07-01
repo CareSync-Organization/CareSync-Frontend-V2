@@ -20,7 +20,7 @@ import { channelConfig } from "@/features/integrations/config/channel-config";
 import { sendMessage } from "@/features/conversation/api/conversation.api";
 
 import { useApproveTicket, useDenyTicket, usePatchTicketPayload, useTicket } from "../api/tickets.queries";
-import { ACTION_LABELS, STATUS_LABELS } from "../types/ticket.types";
+import { ACTION_LABELS } from "../types/ticket.types";
 import type { Ticket, TicketActionType, TicketStatus } from "../types/ticket.types";
 import { ApproveDialog } from "./ApproveDialog";
 import { DenyDialog } from "./DenyDialog";
