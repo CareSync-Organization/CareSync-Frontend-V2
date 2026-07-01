@@ -7,7 +7,7 @@ import { router } from "./router";
 // import * as Sentry from "@sentry/react";
 import { QueryClientProvider } from "@tanstack/react-query"
 import { queryClient } from "./lib/query-client"
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+// import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { ThemeProvider } from './lib/theme-provider';
 import { Toaster } from "sonner"
 
