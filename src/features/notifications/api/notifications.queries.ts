@@ -6,7 +6,7 @@ import {
   markAllRead,
   markRead,
 } from "./notifications.api";
-import type { AppNotification, NotificationListResponse } from "../types/notification.types";
+import type { NotificationListResponse } from "../types/notification.types";
 
 export function useNotifications(params?: { unread?: boolean }) {
   return useQuery({
